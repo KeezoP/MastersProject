@@ -26,6 +26,8 @@ public class UI : MonoBehaviour
     public RectTransform FilterButtons;
     public TextMeshProUGUI cardName;
     public TextMeshProUGUI cardText;
+    public TextMeshProUGUI cardType;
+    public TextMeshProUGUI cardRace;
     public Image cardArt;
     public Sprite[] availableImageTypes;
 
@@ -75,18 +77,12 @@ public class UI : MonoBehaviour
         // loop through all records
         for (int x = 0; x < records.Count; ++x)
         {
-            /*
-            if (x == 0)
-            {
-                Debug.Log("Test Type: " + records[x]["type"]);
-            }
-            */
 
             // create a new segment if we don't have enough
             GameObject segment = x < segments.Count ? segments[x] : CreateNewSegment();
             segment.SetActive(true);
 
-            //Debug.Log("setseg test: "+ records[x]["name"]);
+
             TextMeshProUGUI nameText = segment.transform.Find("CardName").GetComponent<TextMeshProUGUI>();
             Image ifFail = segment.transform.Find("CardTypeImage").GetComponent<Image>();
             Sprite cardTypeImage = ifFail.sprite;
@@ -95,7 +91,7 @@ public class UI : MonoBehaviour
 
             // set imageType
             String cardType = CalcCardType(records[x]["type"]);
-            Debug.Log("cct result: " + cardType);
+            //Debug.Log("cct result: " + cardType);
             switch (cardType)
             {
                 case "Normal":
@@ -196,54 +192,56 @@ public class UI : MonoBehaviour
 
         infoDropdown.gameObject.SetActive(true);
 
-        // get only the records
-        //JSONNode records = AppManager.instance.jsonResult["result"]["records"];
-        JSONNode records = AppManager.instance.jsonResult["data"];
-
+        JSONNode records = AppManager.instance.jsonFilter;
+        //Debug.Log("showmoreinfo using filtered records: " + records.ToString());
         // set the dropdown to appear below the selected segment
         infoDropdown.transform.SetSiblingIndex(index + 1);
 
         // set dropdown info text
         cardName.text = records[index]["name"];
         cardText.text = records[index]["desc"];
-
-
-
-
-        /*
+        cardType.text = records[index]["type"];
+        cardRace.text = records[index]["race"];
+        
 
         // set image
 
         // search for card ID to get card image
         bool imageSaved = false;
+        bool gettingImage = false;
 
-         for(int i = 0; i< AppManager.instance.ImageStorage.Count;i++)
-                {
-                    if (AppManager.instance.ImageStorage[i].cardID.Equals(records[index]["id"]))
-                    {
-                        imageSaved = true;
+        // check to see if already attempted to recieve image
+        for (int i = 0; i < AppManager.instance.ImageRequests.Count; i++)
+        {
+            if (AppManager.instance.ImageRequests[i].Equals(records[index]["id"]))
+            {
+                Debug.Log("Already downloading image");
+                gettingImage = true;
+                break;
+            }
+        }
 
-                        // set image to already saved image
-                        cardArt = AppManager.instance.ImageStorage[i].croppedURL;
-                        break;
-                    }
-                }
+        // check to see if saved
 
+        for (int i = 0; i < AppManager.instance.ImageStorage.Count; i++)
+        {
+            //Debug.Log("saved image ids: "+ AppManager.instance.ImageStorage[i].cardID);
+            if (AppManager.instance.ImageStorage[i].cardID.Equals(records[index]["id"]))
+            {
+                imageSaved = true;
+                //Debug.Log("Already saved image: slot: "+i);
+                // set image to already saved image
+                cardArt.sprite = AppManager.instance.ImageStorage[i].croppedURL;
+                 //break;
+            }
+        }
 
-                // if no image, download image and save to list
-                if(imageSaved == false)
-                {
-                    String imageID = records[index]["id"];
-                    AppManager.instance.StartCoroutine("GetImage", imageID );
-                }
-
-                // display image
-
-
-         */
-
-
-
+        // if no image, download image and save to list
+        if (imageSaved == false && gettingImage == false)
+        {
+            String imageID = records[index]["id"];
+            AppManager.instance.StartCoroutine("GetImage", imageID );
+        }
     }
 
     public void OnSearch(TextMeshProUGUI input)
@@ -289,7 +287,7 @@ public class UI : MonoBehaviour
 
         if (Input.Contains("Fusion"))
         {
-            if(Input.Contains("Pendelum"))
+            if(Input.Contains("Pendulum"))
             {
                 return "Pend Fusion";
             } else
@@ -300,7 +298,7 @@ public class UI : MonoBehaviour
 
         else if (Input.Contains("Synchro"))
         {
-            if (Input.Contains("Pendelum"))
+            if (Input.Contains("Pendulum"))
             {
                 return "Pend Synchro";
             }
@@ -312,7 +310,7 @@ public class UI : MonoBehaviour
 
         else if (Input.Contains("XYZ"))
         {
-            if (Input.Contains("Pendelum"))
+            if (Input.Contains("Pendulum"))
             {
                 return "Pend XYZ";
             }
@@ -324,7 +322,7 @@ public class UI : MonoBehaviour
 
         else if (Input.Contains("Ritual"))
         {
-            if (Input.Contains("Pendelum"))
+            if (Input.Contains("Pendulum"))
             {
                 return "Pend Ritual";
             }
@@ -336,7 +334,7 @@ public class UI : MonoBehaviour
 
         else if (Input.Contains("Effect"))
         {
-            if (Input.Contains("Pendelum"))
+            if (Input.Contains("Pendulum"))
             {
                 return "Pend Effect";
             }
@@ -348,7 +346,7 @@ public class UI : MonoBehaviour
 
         else if (Input.Contains("Normal"))
         {
-            if (Input.Contains("Pendelum"))
+            if (Input.Contains("Pendulum"))
             {
                 return "Pend Normal";
             }

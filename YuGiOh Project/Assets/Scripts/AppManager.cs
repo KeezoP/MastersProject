@@ -23,9 +23,13 @@ public class AppManager : MonoBehaviour
     // API url
     public string url;
     public string cropImageURL;
+    public List<string> ImageRequests;
 
     // JSON from API request
     public JSONNode jsonResult;
+
+    // JSON filtered
+    public JSONNode jsonFilter;
 
     public static AppManager instance;
 
@@ -33,10 +37,10 @@ public class AppManager : MonoBehaviour
     {
         public String cardID;
         public Image smallURL;
-        public Image croppedURL;
+        public Sprite croppedURL;
         public Image largeURL;
 
-        public CardImages(String ID, Image small, Image crop, Image large)
+        public CardImages(String ID, Image small, Sprite crop, Image large)
         {
             cardID = ID;
             smallURL = small;
@@ -45,7 +49,7 @@ public class AppManager : MonoBehaviour
         }
 
 
-        public CardImages(String ID, Image crop)
+        public CardImages(String ID, Sprite crop)
         {
             cardID = ID;
             croppedURL = crop;
@@ -75,7 +79,7 @@ public class AppManager : MonoBehaviour
         string rawJson = Encoding.Default.GetString(webReq.downloadHandler.data);
 
         jsonResult = JSON.Parse(rawJson);
-
+        AppManager.instance.jsonFilter = jsonResult["data"];
 
         //Debug.Log("Test result: "+ jsonResult.ToString());
         // display results
@@ -85,9 +89,10 @@ public class AppManager : MonoBehaviour
 
     public void FilterByExampleButton (int filterIndex)
     {
+        UI.instance.infoDropdown.gameObject.SetActive(false);
         Filters fil = (Filters)filterIndex;
 
-        // get array of records
+        // get unedited array of records
         JSONArray records = jsonResult["data"].AsArray;
 
         string filter = "9999";
@@ -118,6 +123,7 @@ public class AppManager : MonoBehaviour
 
         if (filter.Equals("All"))
         {
+            AppManager.instance.jsonFilter = AppManager.instance.jsonResult["data"];
             UI.instance.SetSegments(records);
         } 
         
@@ -138,8 +144,11 @@ public class AppManager : MonoBehaviour
                     || recordCardType.Contains("XYZ") || recordCardType.Contains("Link"))
                 {
                     filteredRecords.Add(records[i]);
+                    //Debug.Log("filter records data test: extra " + records[i].ToString());
                 }
             }
+
+            AppManager.instance.jsonFilter = filteredRecords;
 
             // display the results on screen
             UI.instance.SetSegments(filteredRecords);
@@ -163,9 +172,12 @@ public class AppManager : MonoBehaviour
                     && recordCardType.Contains("Monster"))
                 {
                     filteredRecords.Add(records[i]);
+                    Debug.Log("filter records data test: mon main " + records[i].ToString());
                 }
             }
 
+            AppManager.instance.jsonFilter = filteredRecords;
+            //Debug.Log("monster filter print filtered: " + AppManager.instance.jsonFilter.ToString());
             // display the results on screen
             UI.instance.SetSegments(filteredRecords);
         }
@@ -184,9 +196,12 @@ public class AppManager : MonoBehaviour
                 if (recordCardType.Contains(filter))
                 {
                     filteredRecords.Add(records[i]);
+                    //Debug.Log("filter records data test: s/t " + records[i].ToString());
                 }
 
             }
+
+            AppManager.instance.jsonFilter = filteredRecords;
 
             // display the results on screen
             UI.instance.SetSegments(filteredRecords);
@@ -197,6 +212,9 @@ public class AppManager : MonoBehaviour
 
     IEnumerator GetImage(string cardID)
     {
+        //Debug.Log("Attempting download of image: "+cardID.ToString());
+        AppManager.instance.ImageRequests.Add(cardID);
+
         UnityWebRequest webReq = UnityWebRequestTexture.GetTexture(String.Format("{0}{1}.jpg", cropImageURL, cardID));
 
         yield return webReq.SendWebRequest();
@@ -209,12 +227,15 @@ public class AppManager : MonoBehaviour
         {
             // Get downloaded asset bundle
             var texture = DownloadHandlerTexture.GetContent(webReq);
-            Image tempImage = UI.instance.cardArt;
-            tempImage.GetComponent<RawImage>().texture = texture;
 
-            AppManager.instance.ImageStorage.Add(new CardImages(cardID, tempImage));
+            //Image tempImage = UI.instance.cardArt;
+            Sprite newSprite = Sprite.Create(texture, new Rect(0.0f, 0.0f, texture.width, texture.height), new Vector2(0.5f, 0.5f), 100.0f);
+            
+            //tempImage.sprite = newSprite;
+
+            AppManager.instance.ImageStorage.Add(new CardImages(cardID, newSprite));
+            UI.instance.cardArt.sprite = newSprite;
         }
-
     }
 }
 

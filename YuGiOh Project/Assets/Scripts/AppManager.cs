@@ -19,11 +19,22 @@ public class AppManager : MonoBehaviour
         Trap = 3, 
         Extra = 4
     }
+    
+    public enum FiltersDeck
+    {
+        Monster = 0,
+        SpellTrap = 1,
+        Extra = 2
+    }
 
     // API url
     public string url;
     public string cropImageURL;
+    public string smallImageURL;
     public List<string> ImageRequests;
+    public List<string> ImageRequestsSmall;
+
+    public int DeckFilter = 9999;
 
     // JSON from API request
     public JSONNode jsonResult;
@@ -36,18 +47,9 @@ public class AppManager : MonoBehaviour
     public class CardImages
     {
         public String cardID;
-        public Image smallURL;
+        public Sprite smallURL;
         public Sprite croppedURL;
         public Image largeURL;
-
-        public CardImages(String ID, Image small, Sprite crop, Image large)
-        {
-            cardID = ID;
-            smallURL = small;
-            croppedURL = crop;
-            largeURL = large;
-        }
-
 
         public CardImages(String ID, Sprite crop)
         {
@@ -70,7 +72,7 @@ public class AppManager : MonoBehaviour
         webReq.downloadHandler = new DownloadHandlerBuffer();
 
         // url and query
-        webReq.url = String.Format("{0}?fname={1}", url, cardName);
+        webReq.url = String.Format("{0}?fname={1}&desc={1}", url, cardName);
 
 
         Debug.Log("attempt to search: " + webReq.url);
@@ -81,7 +83,7 @@ public class AppManager : MonoBehaviour
         jsonResult = JSON.Parse(rawJson);
         AppManager.instance.jsonFilter = jsonResult["data"];
 
-        //Debug.Log("Test result: "+ jsonResult.ToString());
+        Debug.Log("Test result: "+ jsonResult.ToString());
         // display results
         UI.instance.SetSegments(jsonResult["data"]);
 
@@ -90,6 +92,8 @@ public class AppManager : MonoBehaviour
     public void FilterByExampleButton (int filterIndex)
     {
         UI.instance.infoDropdown.gameObject.SetActive(false);
+        UI.instance.DeckButtons.gameObject.SetActive(false);
+        UI.instance.MainMenuButtons.gameObject.SetActive(true);
         Filters fil = (Filters)filterIndex;
 
         // get unedited array of records
@@ -172,7 +176,7 @@ public class AppManager : MonoBehaviour
                     && recordCardType.Contains("Monster"))
                 {
                     filteredRecords.Add(records[i]);
-                    Debug.Log("filter records data test: mon main " + records[i].ToString());
+                    //Debug.Log("filter records data test: mon main " + records[i].ToString());
                 }
             }
 
@@ -210,7 +214,119 @@ public class AppManager : MonoBehaviour
 
     }
 
-    IEnumerator GetImage(string cardID)
+    public void FilterDeck(int filterIndex)
+    {
+        AppManager.instance.DeckFilter = filterIndex;
+
+        List<DeckBuild.Card> Deck = AppManager.instance.GetComponent<DeckBuild>().DeckList;
+        List<DeckBuild.Card> NewDeck = new List<DeckBuild.Card>();
+
+        //UI.instance.infoDropdown.gameObject.SetActive(false);
+        //UI.instance.DeckButtons.gameObject.SetActive(false);
+
+        FiltersDeck fil = (FiltersDeck)filterIndex;
+        
+        string filter = "9999";
+
+        // filter by card type
+        switch (fil)
+        {
+
+            case FiltersDeck.Monster:
+                filter = "Monster";
+                break;
+
+            case FiltersDeck.SpellTrap:
+                filter = "SpellTrap";
+                break;
+
+            case FiltersDeck.Extra:
+                filter = "Extra";
+                break;
+        }
+
+        
+        // extra deck monsters have multiple types
+        if (filter.Equals("Extra"))
+        {
+            for (int i = 0; i < Deck.Count; i++)
+            {
+                // get card type
+                String recordCardType = Deck[i].type;
+
+
+                // compare card type with required type
+                if (recordCardType.Contains("Fusion") || recordCardType.Contains("Synchro")
+                    || recordCardType.Contains("XYZ") || recordCardType.Contains("Link"))
+                {
+                    NewDeck.Add(Deck[i]);
+                    //Debug.Log("filter records data test: extra " + records[i].ToString());
+                }
+            }
+
+            AppManager.instance.GetComponent<DeckBuild>().FilteredDeckList = NewDeck;
+
+            // display the results on screen
+            //Debug.Log("E");
+            UI.instance.displayFilterCards(NewDeck);
+        }
+        
+        // extra deck monsters have multiple types
+        else if (filter.Equals("Monster"))
+        {
+            for (int i = 0; i < Deck.Count; i++)
+            {
+                // get card type
+                String recordCardType = Deck[i].type;
+
+
+                // compare card type with required type
+                if (!recordCardType.Contains("Fusion") && !recordCardType.Contains("Synchro")
+                    && !recordCardType.Contains("XYZ") && !recordCardType.Contains("Link")
+                    && recordCardType.Contains("Monster"))
+                {
+                    NewDeck.Add(Deck[i]);
+                    //Debug.Log("filter records data test: extra " + records[i].ToString());
+                }
+            }
+
+            AppManager.instance.GetComponent<DeckBuild>().FilteredDeckList = NewDeck;
+
+            // display the results on screen
+            //Debug.Log("M");
+            UI.instance.displayFilterCards(NewDeck);
+        }
+
+       
+
+        else
+        {
+            
+            for (int i = 0; i < Deck.Count; i++)
+            {
+                // get card type
+                String recordCardType = Deck[i].type;
+
+                // compare card type with required type
+                if (recordCardType.Contains("Spell") || recordCardType.Contains("Trap"))
+                {
+                    NewDeck.Add(Deck[i]);
+                    
+                }
+
+            }
+
+            AppManager.instance.GetComponent<DeckBuild>().FilteredDeckList = NewDeck;
+
+            // display the results on screen
+            //Debug.Log("ST");
+            UI.instance.displayFilterCards(NewDeck);
+        }
+
+
+    }
+
+    IEnumerator GetImageCropped(string cardID)
     {
         //Debug.Log("Attempting download of image: "+cardID.ToString());
         AppManager.instance.ImageRequests.Add(cardID);
@@ -237,5 +353,47 @@ public class AppManager : MonoBehaviour
             UI.instance.cardArt.sprite = newSprite;
         }
     }
-}
 
+    IEnumerator GetImageSmall(string cardID)
+    {
+        //Debug.Log("Attempting download of image: " +String.Format("{0}{1}.jpg", smallImageURL, cardID));
+        Debug.Log("Attempting download of image: " +String.Format("/{0}/{1}/.jpg", smallImageURL, cardID));
+        AppManager.instance.ImageRequestsSmall.Add(cardID);
+
+        UnityWebRequest webReq = UnityWebRequestTexture.GetTexture(String.Format("{0}{1}.jpg", smallImageURL, cardID));
+
+        yield return webReq.SendWebRequest();
+
+        if (webReq.result != UnityWebRequest.Result.Success)
+        {
+            Debug.Log(webReq.error);
+        }
+        else
+        {
+            // Get downloaded asset bundle
+            var texture = DownloadHandlerTexture.GetContent(webReq);
+
+            Sprite newSprite = Sprite.Create(texture, new Rect(0.0f, 0.0f, texture.width, texture.height), new Vector2(0.5f, 0.5f), 100.0f);
+
+            //AppManager.instance.ImageStorage.Add(new CardImages(cardID, newSprite));
+            //UI.instance.cardArt.sprite = newSprite;
+            
+            // every card should have a cropped image stored
+            for(int i = 0; i < ImageStorage.Count; i++) 
+            { 
+                
+                if(ImageStorage[i].cardID == cardID)
+                {
+                    ImageStorage[i].smallURL = newSprite;
+                }
+            }
+
+            GameObject temp = AppManager.instance.GetComponent<DeckBuild>().cardPrefabs.Last();
+
+            //temp.transform.Find("CardImage").gameObject.SetActive(false);
+            temp.transform.Find("CardImage").GetComponent<Image>().sprite = newSprite;
+            //Debug.Log("tmp sprite: " + tempSprite.ToString());
+            //tempSprite = newSprite;
+        }
+    }
+}

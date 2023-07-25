@@ -12,6 +12,7 @@ public class UI : MonoBehaviour
 
     // holds all results vertically
     public RectTransform container;
+    public RectTransform deckContainer;
 
     // prefab used to display results
     public GameObject segmentPrefab;
@@ -23,13 +24,33 @@ public class UI : MonoBehaviour
 
     // info dropdown object
     public RectTransform infoDropdown;
-    public RectTransform FilterButtons;
+    public RectTransform FilterButtons; 
+    public RectTransform DeckButtons;
+    public RectTransform MainMenuButtons;
+
+    public String cardID;
+    public String tempType;
+    public String tempRace;
     public TextMeshProUGUI cardName;
     public TextMeshProUGUI cardText;
-    public TextMeshProUGUI cardType;
-    public TextMeshProUGUI cardRace;
+    public TextMeshProUGUI cardRT;
+    public TextMeshProUGUI cardLR;
+    public TextMeshProUGUI cardLink;
+    public TextMeshProUGUI cardScale;
+    public TextMeshProUGUI cardAttr;
+    public TextMeshProUGUI cardAtk;
+    public TextMeshProUGUI cardDef;
+
+    public Button AddCardButton;
+    public Button RemoveCardButton;
+    public Button MainSideButtonTop;
+    public Button MainSideButtonBottom;
+
+
     public Image cardArt;
     public Sprite[] availableImageTypes;
+    public Sprite TwoCard;
+    public Sprite ThreeCard;
 
     public static UI instance;
 
@@ -42,7 +63,7 @@ public class UI : MonoBehaviour
     {
         GameObject segment = Instantiate(segmentPrefab);
         //Debug.Log("seg scale test 1: " + segment.transform.localScale.x);
-        segment.transform.parent = container.transform;
+        segment.transform.SetParent(container.transform);
         segment.transform.localScale = Vector3.one;
         //Debug.Log("seg scale test 2: " + segment.transform.localScale.x);
         segments.Add(segment);
@@ -153,7 +174,7 @@ public class UI : MonoBehaviour
 
 
         // set the container size to clamp to the segments
-            container.sizeDelta = new Vector2(container.sizeDelta.x, GetContainerHeight(records.Count));
+        container.sizeDelta = new Vector2(container.sizeDelta.x, GetContainerHeight(records.Count));
     }
 
     // deactivate all of the segment objects
@@ -164,30 +185,144 @@ public class UI : MonoBehaviour
             segment.SetActive(false);
     }
 
+    public void displayFilterCards(List<DeckBuild.Card> newDeck)
+    {
+        deactiivateCards();
+        //Debug.Log("Filtering:");
+        foreach (DeckBuild.Card card in newDeck)
+        {
+            GameObject temp;
+            try
+            {
+                temp = UI.instance.deckContainer.Find(card.name).gameObject;
+                bool isSide = AppManager.instance.GetComponent<DeckBuild>().isSide;
+                //GameObject copiesRun = temp.transform.Find("CopiesRunImage").gameObject;
+                GameObject copiesRun = temp.transform.GetChild(0).GetChild(0).gameObject;
+
+
+                // if side atleast 1
+                if (isSide && card.SideCopies > 0)
+                {
+                    temp.gameObject.SetActive(true);
+
+                    if (card.SideCopies == 2) 
+                    {
+                        Debug.Log("side 2");
+                        copiesRun.SetActive(true);
+                        copiesRun.GetComponent<Image>().sprite = TwoCard;
+                    }
+
+                    else if (card.SideCopies == 3) 
+                    {
+                        Debug.Log("side 3");
+                        copiesRun.SetActive(true);
+                        copiesRun.GetComponent<Image>().sprite = ThreeCard;
+                    } else
+                    {
+                        
+                        copiesRun.SetActive(false);
+                    }
+
+                }
+                
+                // if main/extra atleast 1
+                else if (!isSide && (card.MainCopies > 0 || card.ExtraCopies > 0))
+                {
+                    temp.gameObject.SetActive(true);
+                    
+                    if (card.MainCopies == 2 || card.ExtraCopies == 2)
+                    {
+
+                        Debug.Log("me 3");
+                        copiesRun.SetActive(true);
+                        copiesRun.GetComponent<Image>().sprite = TwoCard;
+                    }
+
+                    else if (card.MainCopies == 3 || card.ExtraCopies == 3)
+                    {
+                        Debug.Log("me 3");
+                        copiesRun.SetActive(true);
+                        copiesRun.GetComponent<Image>().sprite = ThreeCard;
+                    }
+                    else
+                    {
+                        
+                        copiesRun.SetActive(false);
+                    }
+
+
+                } else
+                {
+                    temp.SetActive(false);
+                }
+            }
+            catch
+            {
+                Debug.Log("can't find object with that name: " + card.name);
+            }
+            //Debug.Log("cardname: " + temp.name);
+            //temp.SetActive(true);
+            //Debug.Log(card.name);
+        }
+
+    }
+
+    void deactiivateCards()
+    {
+        foreach (GameObject card in AppManager.instance.GetComponent<DeckBuild>().cardPrefabs)
+            card.SetActive(false);
+    }
+
+
+
     // returns a height to make the container so it clamps to the size of all segments
     float GetContainerHeight(int count)
     {
         float height = 0.0f;
+
         // include all segment heights
         height += count * (segmentPrefab.GetComponent<RectTransform>().sizeDelta.y + 1);
+
         // include the spacing between segments
         height += count * container.GetComponent<VerticalLayoutGroup>().spacing;
+
         // include the info dropdown height
-        height += infoDropdown.sizeDelta.y;
+        //height += infoDropdown.sizeDelta.y;
+
         return height;
     }
 
     // called when the user selects a segment - toggles the dropdown
     public void OnShowMoreInfo(GameObject segmentObject)
     {
+        
         // get the index of the segment
         int index = segments.IndexOf(segmentObject);
 
         // if we're pressing the segment that's already open, close the dropdown
         if (infoDropdown.transform.GetSiblingIndex() == index + 1 && infoDropdown.gameObject.activeInHierarchy)
         {
+            // include the info dropdown height
+            container.sizeDelta = new Vector2(container.sizeDelta.x, container.sizeDelta.y - infoDropdown.sizeDelta.y);
+
             infoDropdown.gameObject.SetActive(false);
+
+            DeckButtons.gameObject.SetActive(false);
+            MainMenuButtons.gameObject.SetActive(true);
+
             return;
+        } 
+        
+        // else if dropdown isn't open
+        else if (!infoDropdown.gameObject.activeInHierarchy)
+        {
+            // include the info dropdown height
+            container.sizeDelta = new Vector2(container.sizeDelta.x, container.sizeDelta.y + infoDropdown.sizeDelta.y);
+
+            // activate buttons
+            DeckButtons.gameObject.SetActive(true);
+            MainMenuButtons.gameObject.SetActive(false);
+
         }
 
         infoDropdown.gameObject.SetActive(true);
@@ -197,15 +332,82 @@ public class UI : MonoBehaviour
         // set the dropdown to appear below the selected segment
         infoDropdown.transform.SetSiblingIndex(index + 1);
 
-        // set dropdown info text
+        // set dropdown info text for base info
+
+        tempType = records[index]["type"];
+        tempRace = records[index]["race"];
+
         cardName.text = records[index]["name"];
         cardText.text = records[index]["desc"];
-        cardType.text = records[index]["type"];
-        cardRace.text = records[index]["race"];
-        
+        cardID = records[index]["id"];
+        // combine race and type, while also editing type
+        cardRT.text = combineRace(tempRace, tempType);
+
+        // if monster
+        if(tempType.Contains("Monster")) 
+        {
+            cardAttr.gameObject.SetActive(true);
+            cardAtk.gameObject.SetActive(true);
+            cardDef.gameObject.SetActive(true);
+
+
+            cardAttr.text = records[index]["attribute"];
+            cardAtk.text = "Atk: "+records[index]["atk"];
+            cardDef.text = "Def: "+records[index]["def"];
+
+            // if XYZ
+            if (tempType.Contains("XYZ"))
+            {
+                cardLR.gameObject.SetActive(true);
+                cardLR.text = "Rank: " + records[index]["level"];
+            }
+            else
+            {               
+                cardLR.gameObject.SetActive(true);
+                cardLR.text = "Level: " + records[index]["level"];
+            }
+
+            // if Pend
+            if (tempType.Contains("Pend"))
+            {
+                cardScale.gameObject.SetActive(true);
+                cardScale.text = "Scale: " + records[index]["scale"];
+            }
+            else
+            {
+                cardScale.gameObject.SetActive(false);
+            }
+
+            // if link
+            if (tempType.Contains("Link"))
+            {
+                cardLink.gameObject.SetActive(true);
+                cardLR.gameObject.SetActive(false);
+                cardLink.text = "Link: " + records[index]["linkval"];
+
+                cardDef.text = "-";
+            }
+            else
+            {
+                cardLink.gameObject.SetActive(false);
+            }
+        }
+
+        else
+        {
+
+            // spells & traps don't have this data, so hide displays
+            cardAttr.gameObject.SetActive(false);
+            cardAtk.gameObject.SetActive(false);
+            cardDef.gameObject.SetActive(false);
+            cardLR.gameObject.SetActive(false);
+            cardLink.gameObject.SetActive(false);
+            cardScale.gameObject.SetActive(false);
+        }
+
 
         // set image
-
+        
         // search for card ID to get card image
         bool imageSaved = false;
         bool gettingImage = false;
@@ -240,7 +442,154 @@ public class UI : MonoBehaviour
         if (imageSaved == false && gettingImage == false)
         {
             String imageID = records[index]["id"];
-            AppManager.instance.StartCoroutine("GetImage", imageID );
+            AppManager.instance.StartCoroutine("GetImageCropped", imageID );
+        }
+    }
+
+    public void OnShowFromDeck(DeckBuild.Card currentCard)
+    {
+
+        // if we're pressing the card that's already open, close the dropdown
+        if (currentCard.name.Equals(cardName.text) && infoDropdown.gameObject.activeInHierarchy)
+        {
+            // include the info dropdown height
+            container.sizeDelta = new Vector2(container.sizeDelta.x, container.sizeDelta.y - infoDropdown.sizeDelta.y);
+
+            infoDropdown.gameObject.SetActive(false);
+
+            DeckButtons.gameObject.SetActive(false);
+            MainMenuButtons.gameObject.SetActive(true);
+
+            return;
+        }
+
+        // if dropdown isn't open
+        else if (!infoDropdown.gameObject.activeInHierarchy)
+        {
+            // include the info dropdown height
+            container.sizeDelta = new Vector2(container.sizeDelta.x, container.sizeDelta.y + infoDropdown.sizeDelta.y);
+
+            // activate buttons
+            DeckButtons.gameObject.SetActive(true);
+            MainMenuButtons.gameObject.SetActive(false);
+
+        }
+
+        infoDropdown.gameObject.SetActive(true);
+
+        // set dropdown info text for base info
+
+        tempType = currentCard.type;
+        tempRace = currentCard.race;
+
+        cardName.text = currentCard.name;
+        cardText.text = currentCard.desc;
+        cardID = currentCard.id;
+
+        // combine race and type, while also editing type
+        cardRT.text = combineRace(tempRace, tempType);
+
+        // if monster
+        if (tempType.Contains("Monster"))
+        {
+            cardAttr.gameObject.SetActive(true);
+            cardAtk.gameObject.SetActive(true);
+            cardDef.gameObject.SetActive(true);
+
+
+            cardAttr.text = currentCard.attr;
+            cardAtk.text = "Atk: " + currentCard.atk;
+            cardDef.text = "Def: " + currentCard.def;
+            
+
+            // if XYZ
+            if (tempType.Contains("XYZ"))
+            {
+                cardLR.gameObject.SetActive(true);
+                cardLR.text = "Rank: " + currentCard.level;
+            }
+            else
+            {
+                cardLR.gameObject.SetActive(true);
+                cardLR.text = "Level: " + currentCard.level;
+            }
+
+            // if Pend
+            if (tempType.Contains("Pend"))
+            {
+                cardScale.gameObject.SetActive(true);
+                cardScale.text = "Scale: " + currentCard.scale;
+            }
+            else
+            {
+                cardScale.gameObject.SetActive(false);
+            }
+
+            // if link
+            if (tempType.Contains("Link"))
+            {
+                cardLink.gameObject.SetActive(true);
+                cardLR.gameObject.SetActive(false);
+                cardLink.text = "Link: " + currentCard.linkVal;
+
+                cardDef.text = "-";
+            }
+            else
+            {
+                cardLink.gameObject.SetActive(false);
+            }
+        }
+
+        else
+        {
+
+            // spells & traps don't have this data, so hide displays
+            cardAttr.gameObject.SetActive(false);
+            cardAtk.gameObject.SetActive(false);
+            cardDef.gameObject.SetActive(false);
+            cardLR.gameObject.SetActive(false);
+            cardLink.gameObject.SetActive(false);
+            cardScale.gameObject.SetActive(false);
+        }
+
+
+        // set image
+
+        // search for card ID to get card image
+        bool imageSaved = false;
+        bool gettingImage = false;
+
+        // check to see if already attempted to recieve image
+        for (int i = 0; i < AppManager.instance.ImageRequests.Count; i++)
+        {
+            if (AppManager.instance.ImageRequests[i].Equals(currentCard.id))
+            {
+                Debug.Log("Already downloading image");
+                gettingImage = true;
+                break;
+            }
+        }
+
+        // check to see if saved
+
+        for (int i = 0; i < AppManager.instance.ImageStorage.Count; i++)
+        {
+            //Debug.Log("saved image ids: "+ AppManager.instance.ImageStorage[i].cardID);
+            if (AppManager.instance.ImageStorage[i].cardID.Equals(currentCard.id))
+            {
+                imageSaved = true;
+                //Debug.Log("Already saved image: slot: "+i);
+                // set image to already saved image
+                cardArt.sprite = AppManager.instance.ImageStorage[i].croppedURL;
+                //break;
+            }
+        }
+
+        // if no image, download image and save to list
+        if (imageSaved == false && gettingImage == false)
+        {
+            String imageID = currentCard.id;
+            AppManager.instance.StartCoroutine("GetImageCropped", imageID);
         }
     }
 
@@ -360,6 +709,26 @@ public class UI : MonoBehaviour
         return Output;
     }
 
+    public String combineRace(String race, String type)
+    {
+        String[] inputs = { race, type};
+
+        for (int i = 0;i < inputs.Length;i++)
+        {
+            string temp = inputs[i];
+            int lastSpace = temp.LastIndexOf(" ");
+            
+            if (lastSpace > -1)
+            {
+                inputs[i] = temp.Remove(lastSpace);
+            }
+            else
+            {
+                inputs[i] = temp;
+            }
+        }
+        return inputs[0]+" / "+ inputs[1].Replace(" ", " / ");
+    }
 }
 
 

@@ -24,7 +24,8 @@ public class AppManager : MonoBehaviour
     {
         Monster = 0,
         SpellTrap = 1,
-        Extra = 2
+        Extra = 2,
+        All = 3
     }
 
     // API url
@@ -41,6 +42,8 @@ public class AppManager : MonoBehaviour
 
     // JSON filtered
     public JSONNode jsonFilter;
+    public JSONNode stapleCards;
+    public bool haveStaples;
 
     public static AppManager instance;
 
@@ -51,10 +54,21 @@ public class AppManager : MonoBehaviour
         public Sprite croppedURL;
         public Image largeURL;
 
-        public CardImages(String ID, Sprite crop)
+        public CardImages(String ID, Sprite sprite, int choice)
         {
             cardID = ID;
-            croppedURL = crop;
+
+            switch(choice)
+            {
+                case 0:
+                    croppedURL = sprite;
+                    break;
+                case 1:
+                    smallURL = sprite;
+                    break;
+            }
+
+            
         }
     }
 
@@ -63,31 +77,10 @@ public class AppManager : MonoBehaviour
     void Awake() 
     {
         instance = this;
+        haveStaples = false;
     }
 
-    IEnumerator GetData (string cardName) 
-    {
-
-        UnityWebRequest webReq = new UnityWebRequest();
-        webReq.downloadHandler = new DownloadHandlerBuffer();
-
-        // url and query
-        webReq.url = String.Format("{0}?fname={1}&desc={1}", url, cardName);
-
-
-        Debug.Log("attempt to search: " + webReq.url);
-        yield return webReq.SendWebRequest();
-
-        string rawJson = Encoding.Default.GetString(webReq.downloadHandler.data);
-
-        jsonResult = JSON.Parse(rawJson);
-        AppManager.instance.jsonFilter = jsonResult["data"];
-
-        Debug.Log("Test result: "+ jsonResult.ToString());
-        // display results
-        UI.instance.SetSegments(jsonResult["data"]);
-
-    }
+    
 
     public void FilterByExampleButton (int filterIndex)
     {
@@ -216,11 +209,13 @@ public class AppManager : MonoBehaviour
 
     public void FilterDeck(int filterIndex)
     {
-        AppManager.instance.DeckFilter = filterIndex;
-
+        
+        if(filterIndex != 3)
+            AppManager.instance.DeckFilter = filterIndex;
+        
         List<DeckBuild.Card> Deck = AppManager.instance.GetComponent<DeckBuild>().DeckList;
         List<DeckBuild.Card> NewDeck = new List<DeckBuild.Card>();
-
+        applyBanlist();
         //UI.instance.infoDropdown.gameObject.SetActive(false);
         //UI.instance.DeckButtons.gameObject.SetActive(false);
 
@@ -242,6 +237,10 @@ public class AppManager : MonoBehaviour
 
             case FiltersDeck.Extra:
                 filter = "Extra";
+                break;
+
+            case FiltersDeck.All:
+                filter = "All";
                 break;
         }
 
@@ -297,7 +296,16 @@ public class AppManager : MonoBehaviour
             UI.instance.displayFilterCards(NewDeck);
         }
 
-       
+        else if(filter.Equals("All"))
+        {
+            for (int i = 0; i < Deck.Count; i++)
+            {
+                NewDeck.Add(Deck[i]);
+            }
+
+            AppManager.instance.GetComponent<DeckBuild>().FilteredDeckList = NewDeck;
+            UI.instance.displayFilterCards(NewDeck);
+        }
 
         else
         {
@@ -326,9 +334,141 @@ public class AppManager : MonoBehaviour
 
     }
 
+    public void applyBanlist()
+    {
+        // calc banlist data here
+        List<DeckBuild.Card> Deck = AppManager.instance.GetComponent<DeckBuild>().DeckList;
+        List<GameObject> prefabs = AppManager.instance.GetComponent<DeckBuild>().cardPrefabs;
+        DeckBuild.DeckFormat DF = (DeckBuild.DeckFormat)AppManager.instance.GetComponent<DeckBuild>().getFormat();
+
+        for (int i = 0;i<Deck.Count;i++)
+        {
+            string whatBanlist = "temp";
+            //Debug.Log(Deck[i].name + ": Format: "+DF.ToString()+" tcg: " + Deck[i].banlist[0]+" ocg: "+Deck[i].banlist[2]);
+            switch (DF.ToString())
+            {
+                case "ALL":
+                    break;
+
+                case "TCG":
+                    whatBanlist = Deck[i].banlist[0];
+                    break;
+
+                case "GOAT":
+                    whatBanlist = Deck[i].banlist[1];
+                    break;
+
+                case "OCG":
+                    whatBanlist = Deck[i].banlist[2];
+                    break;
+            }
+            //Debug.Log(Deck[i].name + ": Status POST SWITCH: " + whatBanlist);
+            GameObject banImage = prefabs[i].transform.GetChild(0).GetChild(1).gameObject;
+
+            if (!whatBanlist.Equals("temp") && !DF.ToString().Equals("ALL"))
+            {
+
+                banImage.gameObject.SetActive(true);
+
+                switch (whatBanlist)
+                {
+                    case "Banned":
+
+                        banImage.GetComponent<Image>().sprite = UI.instance.IconBan;
+                        break;
+
+                    case "Limited":
+
+                        banImage.GetComponent<Image>().sprite = UI.instance.IconLimit;
+                        break;
+                    case "Semi-Limited":
+
+                        banImage.GetComponent<Image>().sprite = UI.instance.IconSemi;
+                        break;
+
+                }
+            }
+            else
+            {
+                banImage.gameObject.SetActive(false);
+            }
+        }
+        if(UI.instance.segments.Count > 0)
+            UI.instance.updateSegments();
+    }
+
+    public void viewStaples()
+    {
+        if (haveStaples == true) {
+            AppManager.instance.jsonFilter = AppManager.instance.stapleCards["data"];
+            AppManager.instance.jsonResult = AppManager.instance.stapleCards;
+
+            if (UI.instance.infoDropdown.gameObject.activeInHierarchy)
+                UI.instance.infoDropdown.gameObject.SetActive(false);
+
+            UI.instance.SetSegments(AppManager.instance.stapleCards["data"]);
+        }
+        else
+        {
+            Debug.Log("Getting Staples");
+            AppManager.instance.StartCoroutine("GetStaples");
+            haveStaples = true;
+        }
+    }
+
+    IEnumerator GetData(string cardName)
+    {
+
+        UnityWebRequest webReq = new UnityWebRequest();
+        webReq.downloadHandler = new DownloadHandlerBuffer();
+
+        // url and query
+        //webReq.url = String.Format("{0}?fname={1}&desc={1}", url, cardName);
+
+        string format = "";
+
+        DeckBuild.DeckFormat tempFormat = (DeckBuild.DeckFormat)AppManager.instance.GetComponent<DeckBuild>().getFormat();
+       
+        switch(tempFormat.ToString())
+        {
+            case "ALL":
+                break;
+
+            case "TCG":
+                format = "&format=tcg";
+                break;
+
+            case "GOAT":
+                format = "&format=goat";
+                break;
+
+            case "OCG":
+                format = "&format=ocg";
+                break;
+        }
+
+
+        // test
+        webReq.url = String.Format("{0}?fname={1}{2}",url,cardName, format);
+
+
+        Debug.Log("attempt to search: " + webReq.url);
+        yield return webReq.SendWebRequest();
+
+        string rawJson = Encoding.Default.GetString(webReq.downloadHandler.data);
+
+        jsonResult = JSON.Parse(rawJson);
+        AppManager.instance.jsonFilter = jsonResult["data"];
+
+        Debug.Log("result: " + jsonResult.ToString());
+        // display results
+        UI.instance.SetSegments(jsonResult["data"]);
+
+    }
+
     IEnumerator GetImageCropped(string cardID)
     {
-        //Debug.Log("Attempting download of image: "+cardID.ToString());
+        Debug.Log("Attempting download of image: "+cardID.ToString());
         AppManager.instance.ImageRequests.Add(cardID);
 
         UnityWebRequest webReq = UnityWebRequestTexture.GetTexture(String.Format("{0}{1}.jpg", cropImageURL, cardID));
@@ -346,21 +486,36 @@ public class AppManager : MonoBehaviour
 
             //Image tempImage = UI.instance.cardArt;
             Sprite newSprite = Sprite.Create(texture, new Rect(0.0f, 0.0f, texture.width, texture.height), new Vector2(0.5f, 0.5f), 100.0f);
-            
+
             //tempImage.sprite = newSprite;
 
-            AppManager.instance.ImageStorage.Add(new CardImages(cardID, newSprite));
+            bool found = false;
+            for (int i = 0; i < ImageStorage.Count; i++)
+            {
+
+                if (ImageStorage[i].cardID == cardID)
+                {
+                    found = true;
+                    ImageStorage[i].croppedURL = newSprite;
+                }
+            }
+
+            // if loaded image
+            if (found == false)
+            {
+                Debug.Log("No cropped saved");
+                AppManager.instance.ImageStorage.Add(new CardImages(cardID, newSprite,0));
+            }
             UI.instance.cardArt.sprite = newSprite;
         }
     }
 
-    IEnumerator GetImageSmall(string cardID)
+    IEnumerator GetImageSmall(DeckBuild.Card newCard)
     {
         //Debug.Log("Attempting download of image: " +String.Format("{0}{1}.jpg", smallImageURL, cardID));
-        Debug.Log("Attempting download of image: " +String.Format("/{0}/{1}/.jpg", smallImageURL, cardID));
-        AppManager.instance.ImageRequestsSmall.Add(cardID);
+       AppManager.instance.ImageRequestsSmall.Add(newCard.id);
 
-        UnityWebRequest webReq = UnityWebRequestTexture.GetTexture(String.Format("{0}{1}.jpg", smallImageURL, cardID));
+        UnityWebRequest webReq = UnityWebRequestTexture.GetTexture(String.Format("{0}{1}.jpg", smallImageURL, newCard.id));
 
         yield return webReq.SendWebRequest();
 
@@ -377,23 +532,69 @@ public class AppManager : MonoBehaviour
 
             //AppManager.instance.ImageStorage.Add(new CardImages(cardID, newSprite));
             //UI.instance.cardArt.sprite = newSprite;
-            
-            // every card should have a cropped image stored
+
+            // every card should have a cropped image stored - Not with loaded however
+            bool found = false;
+
             for(int i = 0; i < ImageStorage.Count; i++) 
             { 
                 
-                if(ImageStorage[i].cardID == cardID)
+                if(ImageStorage[i].cardID == newCard.id)
                 {
+                    found = true;
                     ImageStorage[i].smallURL = newSprite;
+                    GameObject temp = AppManager.instance.GetComponent<DeckBuild>().cardPrefabs.Last();
+                    temp.transform.Find("CardImage").GetComponent<Image>().sprite = newSprite;
                 }
             }
 
-            GameObject temp = AppManager.instance.GetComponent<DeckBuild>().cardPrefabs.Last();
+            // if loaded image
+            if(found == false)
+            {
+                AppManager.instance.ImageStorage.Add(new CardImages(newCard.id, newSprite, 1));
+            }
+
+            List<GameObject> ListOfDecks = AppManager.instance.GetComponent<DeckBuild>().cardPrefabs;
+
+            for (int i = 0;i< ListOfDecks.Count;i++)
+            {
+                if(ListOfDecks[i].name == newCard.name)
+                {
+                    ListOfDecks[i].transform.Find("CardImage").GetComponent<Image>().sprite = newSprite;
+                    break;
+                }
+            }
 
             //temp.transform.Find("CardImage").gameObject.SetActive(false);
-            temp.transform.Find("CardImage").GetComponent<Image>().sprite = newSprite;
+            
             //Debug.Log("tmp sprite: " + tempSprite.ToString());
             //tempSprite = newSprite;
         }
+    }
+
+    IEnumerator GetStaples()
+    {
+
+        UnityWebRequest webReq = new UnityWebRequest();
+        webReq.downloadHandler = new DownloadHandlerBuffer();
+
+        // url and query
+        webReq.url = String.Format("{0}?staple=yes", url);
+
+        // STAPLE
+        //webReq.url = String.Format("{0}?type=trap%20card&staple=yes",url);
+
+        yield return webReq.SendWebRequest();
+
+        string rawJson = Encoding.Default.GetString(webReq.downloadHandler.data);
+
+        jsonResult = JSON.Parse(rawJson);
+        AppManager.instance.jsonFilter = jsonResult["data"];
+        AppManager.instance.stapleCards = jsonResult;
+
+
+        // display results
+        UI.instance.SetSegments(jsonResult["data"]);
+        UI.instance.FilterButtons.gameObject.SetActive(true);
     }
 }

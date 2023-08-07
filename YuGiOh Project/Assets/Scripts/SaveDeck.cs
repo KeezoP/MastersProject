@@ -23,12 +23,14 @@ public class SaveDeck : MonoBehaviour
 public class DeckData
 {
     public string deckName;
+    public string deckNotes;
     public List<JCard> CardList = new();
 
-    public DeckData(string name, List<JCard> cards)
+    public DeckData(string name, List<JCard> cards, string notes)
     {
         this.deckName = name;
         this.CardList = cards;
+        this.deckNotes = notes;
     }
 }
 [Serializable]
@@ -39,6 +41,9 @@ public class JCard
     public int MainCopies;
     public int SideCopies;
     public int ExtraCopies;
+    public string ban_tcg;
+    public string ban_goat;
+    public string ban_ocg;
 
     // every card have these
     public string name;

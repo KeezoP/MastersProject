@@ -13,12 +13,13 @@ public class UI : MonoBehaviour
     // holds all results vertically
     public RectTransform container;
     public RectTransform deckContainer;
+    public RectTransform viewContainer;
 
     // prefab used to display results
     public GameObject segmentPrefab;
 
     // list of all available segments
-    private List<GameObject> segments = new List<GameObject>();
+    public List<GameObject> segments = new List<GameObject>();
 
     [Header("Info Dropdown")]
 
@@ -31,6 +32,7 @@ public class UI : MonoBehaviour
     public String cardID;
     public String tempType;
     public String tempRace;
+    public String[] cardBan;
     public TextMeshProUGUI cardName;
     public TextMeshProUGUI cardText;
     public TextMeshProUGUI cardRT;
@@ -45,18 +47,23 @@ public class UI : MonoBehaviour
     public Button RemoveCardButton;
     public Button MainSideButtonTop;
     public Button MainSideButtonBottom;
-
+    public TMP_Dropdown FormatChoice;
 
     public Image cardArt;
     public Sprite[] availableImageTypes;
     public Sprite TwoCard;
     public Sprite ThreeCard;
+    public Sprite IconBan;
+    public Sprite IconLimit;
+    public Sprite IconSemi;
+
 
     public static UI instance;
 
     private void Awake()
     {
         instance = this;
+        cardBan = new String[3] { "temp", "temp","temp" };
     }
 
     GameObject CreateNewSegment ()
@@ -86,15 +93,15 @@ public class UI : MonoBehaviour
 
     void Start()
     {
-        // preload 10 segments
-        PreLoadSegments(10);
+        // preload 1 segment
+        //PreLoadSegments(1);
     }
 
     // gets the JSON result and displays them on the screen with their respective segments
     public void SetSegments(JSONNode records)
     {
         DeactivateAllSegments();
-
+        
         // loop through all records
         for (int x = 0; x < records.Count; ++x)
         {
@@ -110,54 +117,62 @@ public class UI : MonoBehaviour
 
             nameText.text = records[x]["name"];
 
+            //if(records[x]["banlist_info"] != null)
+              //  Debug.Log("ban: " + records[x]["banlist_info"].ToString());
+
+            // here we can save banlist info to segments.
+
             // set imageType
-            String cardType = CalcCardType(records[x]["type"]);
+            //String cardType = CalcCardType(records[x]["type"]);
+            String cardType = records[x]["frameType"];
             //Debug.Log("cct result: " + cardType);
+
+            
             switch (cardType)
             {
-                case "Normal":
+                case "normal":
                     cardTypeImage = availableImageTypes[0];
                     break;
-                case "Effect":
+                case "effect":
                     cardTypeImage = availableImageTypes[1];
                     break;
-                case "Ritual":
+                case "ritual":
                     cardTypeImage = availableImageTypes[2];
                     break;
-                case "Fusion":
+                case "fusion":
                     cardTypeImage = availableImageTypes[3];
                     break;
-                case "Synchro":
+                case "synchro":
                     cardTypeImage = availableImageTypes[4];
                     break;
-                case "XYZ":
+                case "xyz":
                     cardTypeImage = availableImageTypes[5];
                     break;
-                case "Link":
+                case "link":
                     cardTypeImage = availableImageTypes[6];
                     break;
-                case "Pend Normal":
+                case "normal_pendulum":
                     cardTypeImage = availableImageTypes[7];
                     break;
-                case "Pend Effect":
+                case "effect_pendulum":
                     cardTypeImage = availableImageTypes[8];
                     break;
-                case "Pend Ritual":
+                case "ritual_pendulum":
                     cardTypeImage = availableImageTypes[9];
                     break;
-                case "Pend Fusion":
+                case "fusion_pendulum":
                     cardTypeImage = availableImageTypes[10];
                     break;
-                case "Pend Synchro":
+                case "synchro_pendulum":
                     cardTypeImage = availableImageTypes[11];
                     break;
-                case "Pend XYZ":
+                case "xyz_pendulum":
                     cardTypeImage = availableImageTypes[12];
                     break;
-                case "Spell":
+                case "spell":
                     cardTypeImage = availableImageTypes[13];
                     break;
-                case "Trap":
+                case "trap":
                     cardTypeImage = availableImageTypes[14];
                     break;
                 case "9999":
@@ -169,11 +184,71 @@ public class UI : MonoBehaviour
 
             }
             segment.transform.Find("CardTypeImage").GetComponent<Image>().sprite = cardTypeImage;
+
+            // assuming format is all but banlist is tcg
+
+            DeckBuild.DeckFormat tempFormat = (DeckBuild.DeckFormat)AppManager.instance.GetComponent<DeckBuild>().getFormat();
+            string banlist = "temp";
+
+            switch (tempFormat.ToString())
+            {
+                case "ALL":
+                    break;
+
+                case "TCG":
+                    banlist = "ban_tcg";
+                    break;
+
+                case "GOAT":
+                    banlist = "ban_goat";
+                    break;
+
+                case "OCG":
+                    banlist = "ban_ocg";
+                    break;
+            }
+
+
+
+
+            
+            string restriction = "9999";
+            
+
+            if(records[x]["banlist_info"][banlist] && !tempFormat.ToString().Equals("ALL"))
+            {
+                restriction = records[x]["banlist_info"][banlist];
+                Transform listCard = segment.transform.Find("BanListImage");
+                listCard.gameObject.SetActive(true);
+
+                switch (restriction)
+                {
+                    case "Banned":
+                        
+                        listCard.GetComponent<Image>().sprite = IconBan;
+                        break;
+
+                    case "Limited":
+                        
+                        listCard.GetComponent<Image>().sprite = IconLimit;
+                        break;
+
+                    case "Semi-Limited":
+
+                        listCard.GetComponent<Image>().sprite = IconSemi;
+                        break;
+                }
+            } else
+            {
+                segment.transform.Find("BanListImage").gameObject.SetActive(false);
+            }
+
         }
 
 
 
         // set the container size to clamp to the segments
+        // CLAMP COPY TO ELSEWHERE
         container.sizeDelta = new Vector2(container.sizeDelta.x, GetContainerHeight(records.Count));
     }
 
@@ -187,74 +262,166 @@ public class UI : MonoBehaviour
 
     public void displayFilterCards(List<DeckBuild.Card> newDeck)
     {
-        deactiivateCards();
+        deactivateCards();
         //Debug.Log("Filtering:");
+        int tempCount = 0;
         foreach (DeckBuild.Card card in newDeck)
         {
-            GameObject temp;
+            //Debug.Log("Fil: " + card.name);
+
+
             try
             {
-                temp = UI.instance.deckContainer.Find(card.name).gameObject;
-                bool isSide = AppManager.instance.GetComponent<DeckBuild>().isSide;
-                //GameObject copiesRun = temp.transform.Find("CopiesRunImage").gameObject;
-                GameObject copiesRun = temp.transform.GetChild(0).GetChild(0).gameObject;
-
-
-                // if side atleast 1
-                if (isSide && card.SideCopies > 0)
-                {
-                    temp.gameObject.SetActive(true);
-
-                    if (card.SideCopies == 2) 
+                List<GameObject> dupes = new();
+                // find every prefab of given card (max 2)
+                //Debug.Log("deckContainer count: "+deckContainer.childCount);
+                foreach(Transform g in deckContainer.transform) { 
+                if(g.gameObject.name == card.name)
                     {
-                        Debug.Log("side 2");
-                        copiesRun.SetActive(true);
-                        copiesRun.GetComponent<Image>().sprite = TwoCard;
+                        dupes.Add(g.gameObject);                       
+                    }
+                }
+
+                for (int i = 0;i<dupes.Count;i++) {
+                    GameObject temp = dupes[i];
+
+                    bool isSide = AppManager.instance.GetComponent<DeckBuild>().isSide;
+
+                    //GameObject copiesRun = temp.transform.Find("CopiesRunImage").gameObject;
+                    GameObject copiesRun = temp.transform.GetChild(0).GetChild(0).gameObject;
+
+                    //Debug.Log(card.name + ": mse: " + card.MainCopies + "/" + card.SideCopies + "/" + card.ExtraCopies);
+                    
+                    // if showing all cards or main deck cards
+
+
+
+                    if(!isSide || viewContainer.gameObject.activeInHierarchy == true)
+                    {
+                        // if main/extra atleast 1
+                        if ((card.MainCopies > 0 || card.ExtraCopies > 0))
+                        {
+                            temp.gameObject.SetActive(true);
+                            copiesRun.SetActive(true);
+
+                            if (card.MainCopies == 2 || card.ExtraCopies == 2)
+                            {
+                                //Debug.Log(card.name+": " +"main 2");
+                                copiesRun.GetComponent<Image>().sprite = TwoCard;
+                            }
+
+                            else if (card.MainCopies == 3 || card.ExtraCopies == 3)
+                            {
+                                //Debug.Log(card.name + ": " + "main 3");
+                                copiesRun.GetComponent<Image>().sprite = ThreeCard;
+                            }
+                            else
+                            {
+                                //Debug.Log(card.name + ": " + "main 1");
+                                copiesRun.SetActive(false);
+                            }
+
+                            if (!isSide || viewContainer.gameObject.activeInHierarchy == true)
+                            {
+                                temp.SetActive(true);
+                                tempCount++;
+                            }
+                            else
+                            {
+                                temp.SetActive(false);
+                            }
+                        }
+
+
+
                     }
 
-                    else if (card.SideCopies == 3) 
+                    // else if show all cards or side deck cards
+                    if (isSide || viewContainer.gameObject.activeInHierarchy == true)
                     {
-                        Debug.Log("side 3");
-                        copiesRun.SetActive(true);
-                        copiesRun.GetComponent<Image>().sprite = ThreeCard;
-                    } else
+                        if (card.SideCopies > 0)
+                        {
+
+                            temp.gameObject.SetActive(true);
+                            copiesRun.SetActive(true);
+
+                            if (card.SideCopies == 2)
+                            {
+                                //Debug.Log(card.name + ": " + "side 2");
+                                copiesRun.GetComponent<Image>().sprite = TwoCard;
+                            }
+
+                            else if (card.SideCopies == 3)
+                            {
+                                //Debug.Log(card.name);
+                                Debug.Log(card.name + ": " + "side 3");
+                                copiesRun.GetComponent<Image>().sprite = ThreeCard;
+                            }
+                            else
+                            {
+                                //Debug.Log(card.name + ": " + "side 1");
+                                copiesRun.SetActive(false);
+                            }
+
+                            if (isSide || viewContainer.gameObject.activeInHierarchy == true)
+                            {
+                                temp.SetActive(true);
+                                tempCount++;
+                            }
+                            else
+                            {
+                                temp.SetActive(false);
+                            }
+
+                        }
+                    }
+                    // if side atleast 1
+
+                    if (dupes.Count > 1)
                     {
-                        
-                        copiesRun.SetActive(false);
+                        Debug.Log("Dupe found: " + dupes[0].name);
+                        // if side atleast 1
+                        if (card.SideCopies > 0)
+                        {
+                            temp = dupes[1];
+                            copiesRun = temp.transform.GetChild(0).GetChild(0).gameObject;
+
+                            temp.gameObject.SetActive(true);
+                            copiesRun.SetActive(true);
+
+                            if (card.SideCopies == 2)
+                            {
+                                //Debug.Log("side 2 dupe");
+                                copiesRun.GetComponent<Image>().sprite = TwoCard;
+                            }
+
+                            else if (card.SideCopies == 3)
+                            {
+                                //Debug.Log("side 3 dupe");
+                                copiesRun.GetComponent<Image>().sprite = ThreeCard;
+                            }
+                            else
+                            {
+                               //Debug.Log("side 1 dupe");
+                                copiesRun.SetActive(false);
+                            }
+
+                            if (isSide || viewContainer.gameObject.activeInHierarchy == true)
+                            {
+                                temp.SetActive(true);
+                                tempCount++;
+                            }
+                            else
+                            {
+                                temp.SetActive(false);
+                            }
+
+                        }
+                        break;
                     }
 
                 }
                 
-                // if main/extra atleast 1
-                else if (!isSide && (card.MainCopies > 0 || card.ExtraCopies > 0))
-                {
-                    temp.gameObject.SetActive(true);
-                    
-                    if (card.MainCopies == 2 || card.ExtraCopies == 2)
-                    {
-
-                        Debug.Log("me 3");
-                        copiesRun.SetActive(true);
-                        copiesRun.GetComponent<Image>().sprite = TwoCard;
-                    }
-
-                    else if (card.MainCopies == 3 || card.ExtraCopies == 3)
-                    {
-                        Debug.Log("me 3");
-                        copiesRun.SetActive(true);
-                        copiesRun.GetComponent<Image>().sprite = ThreeCard;
-                    }
-                    else
-                    {
-                        
-                        copiesRun.SetActive(false);
-                    }
-
-
-                } else
-                {
-                    temp.SetActive(false);
-                }
             }
             catch
             {
@@ -264,10 +431,14 @@ public class UI : MonoBehaviour
             //temp.SetActive(true);
             //Debug.Log(card.name);
         }
+        
+        deckContainer.sizeDelta = new Vector2(GetDeckWidth(tempCount), deckContainer.sizeDelta.y);
 
+
+        //deckContainer.sizeDelta = new Vector2(0, container.sizeDelta.y);
     }
 
-    void deactiivateCards()
+    void deactivateCards()
     {
         foreach (GameObject card in AppManager.instance.GetComponent<DeckBuild>().cardPrefabs)
             card.SetActive(false);
@@ -290,6 +461,35 @@ public class UI : MonoBehaviour
         //height += infoDropdown.sizeDelta.y;
 
         return height;
+    }
+    public float GetViewContainerHeight(int count)
+    {
+        float height = 0.0f;
+
+        // include all segment heights
+        height += count * (AppManager.instance.GetComponent<DeckBuild>().cardPrefab.GetComponent<RectTransform>().sizeDelta.y * 0.75f);
+
+        // include the spacing between segments
+        height += count * viewContainer.GetComponent<GridLayoutGroup>().spacing.y;
+
+        // include the info dropdown height
+        //height += infoDropdown.sizeDelta.y;
+        //height -= 1150;
+        return height;
+    }
+    float GetDeckWidth(int count)
+    {
+        //Debug.Log(count+": visible");
+        float width = 0.0f;
+
+        // include all segment widths
+        width += count * (AppManager.instance.GetComponent<DeckBuild>().cardPrefab.GetComponent<RectTransform>().sizeDelta.x * 0.75f);
+
+        // include the spacing between segments
+        width += count * deckContainer.GetComponent<HorizontalLayoutGroup>().spacing;
+
+
+        return width - 800;
     }
 
     // called when the user selects a segment - toggles the dropdown
@@ -336,6 +536,34 @@ public class UI : MonoBehaviour
 
         tempType = records[index]["type"];
         tempRace = records[index]["race"];
+        
+        if(records[index]["banlist_info"]["ban_tcg"])
+        {
+            cardBan[0] = records[index]["banlist_info"]["ban_tcg"];
+            
+        } 
+        else
+        {
+            cardBan[0] = "temp";
+        }
+        
+        if (records[index]["banlist_info"]["ban_goat"])
+        {
+            cardBan[1] = records[index]["banlist_info"]["ban_goat"];
+        }
+        else
+        {
+            cardBan[1] = "temp";
+        }
+
+        if (records[index]["banlist_info"]["ban_ocg"])
+        {
+            cardBan[2] = records[index]["banlist_info"]["ban_ocg"];
+        }
+        else
+        {
+            cardBan[2] = "temp";
+        }
 
         cardName.text = records[index]["name"];
         cardText.text = records[index]["desc"];
@@ -415,7 +643,7 @@ public class UI : MonoBehaviour
         // check to see if already attempted to recieve image
         for (int i = 0; i < AppManager.instance.ImageRequests.Count; i++)
         {
-            if (AppManager.instance.ImageRequests[i].Equals(records[index]["id"]))
+            if (AppManager.instance.ImageRequests[i].Equals(records[index]["id"]) && AppManager.instance.ImageStorage[i].croppedURL != null)
             {
                 Debug.Log("Already downloading image");
                 gettingImage = true;
@@ -428,10 +656,10 @@ public class UI : MonoBehaviour
         for (int i = 0; i < AppManager.instance.ImageStorage.Count; i++)
         {
             //Debug.Log("saved image ids: "+ AppManager.instance.ImageStorage[i].cardID);
-            if (AppManager.instance.ImageStorage[i].cardID.Equals(records[index]["id"]))
+            if (AppManager.instance.ImageStorage[i].cardID.Equals(records[index]["id"]) && AppManager.instance.ImageStorage[i].croppedURL != null)
             {
                 imageSaved = true;
-                //Debug.Log("Already saved image: slot: "+i);
+                Debug.Log("Already saved image: slot: "+i);
                 // set image to already saved image
                 cardArt.sprite = AppManager.instance.ImageStorage[i].croppedURL;
                  //break;
@@ -562,7 +790,7 @@ public class UI : MonoBehaviour
         // check to see if already attempted to recieve image
         for (int i = 0; i < AppManager.instance.ImageRequests.Count; i++)
         {
-            if (AppManager.instance.ImageRequests[i].Equals(currentCard.id))
+            if (AppManager.instance.ImageRequests[i].Equals(currentCard.id) && AppManager.instance.ImageStorage[i].croppedURL != null)
             {
                 Debug.Log("Already downloading image");
                 gettingImage = true;
@@ -575,10 +803,11 @@ public class UI : MonoBehaviour
         for (int i = 0; i < AppManager.instance.ImageStorage.Count; i++)
         {
             //Debug.Log("saved image ids: "+ AppManager.instance.ImageStorage[i].cardID);
-            if (AppManager.instance.ImageStorage[i].cardID.Equals(currentCard.id))
+            if (AppManager.instance.ImageStorage[i].cardID.Equals(currentCard.id) 
+                && AppManager.instance.ImageStorage[i].croppedURL != null)
             {
                 imageSaved = true;
-                //Debug.Log("Already saved image: slot: "+i);
+                Debug.Log("Already saved image: slot: "+i);
                 // set image to already saved image
                 cardArt.sprite = AppManager.instance.ImageStorage[i].croppedURL;
                 //break;
@@ -595,7 +824,15 @@ public class UI : MonoBehaviour
 
     public void OnSearch(TextMeshProUGUI input)
     {
-        if (input.text.Length - 1 >= 3) {
+        if (input.text.Length - 1 >= 3) 
+        {
+            foreach (Transform child in container.transform)
+            {
+                if (!child.name.Equals("InfoDropDown"))
+                    Destroy(child.gameObject);
+            }
+            UI.instance.segments.Clear();
+
             // get and set the data
             // unsure why, but invisible character is added to the end of user input, this removes it
             AppManager.instance.StartCoroutine("GetData", input.text.Remove(input.text.Length - 1));
@@ -728,6 +965,133 @@ public class UI : MonoBehaviour
             }
         }
         return inputs[0]+" / "+ inputs[1].Replace(" ", " / ");
+    }
+
+    public void returnToDeckSelect()
+    {
+        // delete old data
+        AppManager.instance.GetComponent<DeckBuild>().DeckList.Clear();
+        AppManager.instance.GetComponent<DeckBuild>().FilteredDeckList.Clear();
+        AppManager.instance.GetComponent<DeckBuild>().cardPrefabs.Clear();
+        AppManager.instance.GetComponent<LoadDeck>().loadedDecks.Clear();
+        UI.instance.segments.Clear();
+
+
+        foreach (Transform child in AppManager.instance.GetComponent<LoadDeck>().LDC.transform)
+            Destroy(child.gameObject);
+
+        foreach (Transform child in container.transform) { 
+            if(!child.name.Equals("InfoDropDown"))
+                Destroy(child.gameObject);
+        }
+            
+        
+        foreach (Transform child in deckContainer.transform)
+            Destroy(child.gameObject);
+        
+        foreach (Transform child in viewContainer.transform)
+            Destroy(child.gameObject);
+
+        AppManager.instance.GetComponent<LoadDeck>().LoadAllDecks();
+        AppManager.instance.GetComponent<DrawCalc>().Return();
+
+
+        if(FilterButtons.gameObject.activeInHierarchy)
+        {
+            AppManager.instance.jsonResult.Clear();
+            AppManager.instance.jsonFilter.Clear();
+        }
+
+        // reset visuals 
+        GameObject canvas = GameObject.Find("Canvas");
+        
+        FilterButtons.gameObject.SetActive(false);
+        infoDropdown.gameObject.SetActive(false);
+        
+        canvas.transform.Find("MainMenuButtons").transform.GetChild(1).gameObject.SetActive(false);
+        canvas.transform.Find("MainMenuButtons").gameObject.SetActive(false);
+        canvas.transform.Find("CardDeckButtons").gameObject.SetActive(false);
+        canvas.transform.Find("CardList").gameObject.SetActive(false);
+        canvas.transform.Find("CardSearch").gameObject.SetActive(false);
+        canvas.transform.Find("DeckBuild").gameObject.SetActive(false);
+        canvas.transform.Find("DeckView").gameObject.SetActive(false);
+        canvas.transform.Find("DrawCalcView").gameObject.SetActive(false);
+        canvas.transform.Find("ChooseDeck").GetChild(0).gameObject.SetActive(true);
+        canvas.transform.Find("LoadDeckButtons").gameObject.SetActive(true);
+        canvas.transform.Find("Header").GetChild(0).gameObject.SetActive(false);
+        canvas.transform.Find("Header").GetChild(2).gameObject.SetActive(false);
+    }
+
+    public void updateSegments()
+    {
+        // calc banlist data here
+        JSONNode Deck = AppManager.instance.jsonFilter;
+        List<GameObject> prefabs = segments;
+        DeckBuild.DeckFormat DF = (DeckBuild.DeckFormat)AppManager.instance.GetComponent<DeckBuild>().getFormat();
+
+        string banlist = "temp";
+
+        switch (DF.ToString())
+        {
+            case "ALL":
+                break;
+
+            case "TCG":
+                banlist = "ban_tcg";
+                break;
+
+            case "GOAT":
+                banlist = "ban_goat";
+                break;
+
+            case "OCG":
+                banlist = "ban_ocg";
+                break;
+        }
+
+
+
+        for (int i =0;i<Deck.Count;i++)
+        {
+            string restriction = "9999";
+
+
+            if (Deck[i]["banlist_info"][banlist] && !DF.ToString().Equals("ALL"))
+            {
+                restriction = Deck[i]["banlist_info"][banlist];
+                Transform listCard = prefabs[i].transform.Find("BanListImage");
+                listCard.gameObject.SetActive(true);
+
+                switch (restriction)
+                {
+                    case "Banned":
+
+                        listCard.GetComponent<Image>().sprite = IconBan;
+                        break;
+                        
+                    case "Limited":
+                        
+                        listCard.GetComponent<Image>().sprite = IconLimit;
+                        break;
+                    case "Semi-Limited":
+                        
+                        listCard.GetComponent<Image>().sprite = IconSemi;
+                        break;
+                }
+            }
+            else
+            {
+                prefabs[i].transform.Find("BanListImage").gameObject.SetActive(false);
+            }
+
+        }
+
+    }
+
+    public void changeFormat()
+    {
+        AppManager.instance.GetComponent<DeckBuild>().DF = (DeckBuild.DeckFormat)UI.instance.FormatChoice.value;
+        AppManager.instance.applyBanlist();
     }
 }
 

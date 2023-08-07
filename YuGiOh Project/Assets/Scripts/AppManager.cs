@@ -93,28 +93,38 @@ public class AppManager : MonoBehaviour
         JSONArray records = jsonResult["data"].AsArray;
 
         string filter = "9999";
+        UI.instance.FilterButtons.transform.GetChild(0).GetComponent<Image>().color = new Color(0, 0, 0, 0.5f);
+        UI.instance.FilterButtons.transform.GetChild(1).GetComponent<Image>().color = new Color(0, 0, 0, 0.5f);
+        UI.instance.FilterButtons.transform.GetChild(2).GetComponent<Image>().color = new Color(0, 0, 0, 0.5f);
+        UI.instance.FilterButtons.transform.GetChild(3).GetComponent<Image>().color = new Color(0, 0, 0, 0.5f);
+        UI.instance.FilterButtons.transform.GetChild(4).GetComponent<Image>().color = new Color(0, 0, 0, 0.5f);
 
         // filter by card type
-        switch(fil)
+        switch (fil)
         {
             case Filters.All:
                 filter = "All";
+                UI.instance.FilterButtons.transform.GetChild(0).GetComponent<Image>().color = new Color(0.4f, 0.8f, 0.7f, 1.0f);
                 break;
 
             case Filters.Monster:
                 filter = "Monster";
+                UI.instance.FilterButtons.transform.GetChild(1).GetComponent<Image>().color = new Color(0.4f, 0.8f, 0.7f, 1.0f);
                 break;
 
             case Filters.Spell:
                 filter = "Spell";
+                UI.instance.FilterButtons.transform.GetChild(2).GetComponent<Image>().color = new Color(0.4f, 0.8f, 0.7f, 1.0f);
                 break;
 
             case Filters.Trap:
                 filter = "Trap";
+                UI.instance.FilterButtons.transform.GetChild(3).GetComponent<Image>().color = new Color(0.4f, 0.8f, 0.7f, 1.0f);
                 break;
 
             case Filters.Extra:
                 filter = "Extra";
+                UI.instance.FilterButtons.transform.GetChild(4).GetComponent<Image>().color = new Color(0.4f, 0.8f, 0.7f, 1.0f);
                 break;
         }
 
@@ -222,21 +232,26 @@ public class AppManager : MonoBehaviour
         FiltersDeck fil = (FiltersDeck)filterIndex;
         
         string filter = "9999";
-
+        UI.instance.DeckFilterButtons.transform.GetChild(0).GetComponent<Image>().color = new Color(0,0,0,0.5f);
+        UI.instance.DeckFilterButtons.transform.GetChild(1).GetComponent<Image>().color = new Color(0,0,0,0.5f);
+        UI.instance.DeckFilterButtons.transform.GetChild(2).GetComponent<Image>().color = new Color(0,0,0,0.5f);
         // filter by card type
         switch (fil)
         {
 
             case FiltersDeck.Monster:
                 filter = "Monster";
+                UI.instance.DeckFilterButtons.transform.GetChild(0).GetComponent<Image>().color = new Color(0.44f, 0.7f, 0.8f, 1.0f);
                 break;
 
             case FiltersDeck.SpellTrap:
                 filter = "SpellTrap";
+                UI.instance.DeckFilterButtons.transform.GetChild(1).GetComponent<Image>().color = new Color(0.44f, 0.7f, 0.8f, 1.0f);
                 break;
 
             case FiltersDeck.Extra:
                 filter = "Extra";
+                UI.instance.DeckFilterButtons.transform.GetChild(2).GetComponent<Image>().color = new Color(0.44f, 0.7f, 0.8f, 1.0f);
                 break;
 
             case FiltersDeck.All:

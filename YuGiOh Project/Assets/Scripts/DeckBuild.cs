@@ -515,6 +515,10 @@ public class DeckBuild : MonoBehaviour
         canvas.transform.Find("Header").GetChild(0).gameObject.SetActive(true);
         canvas.transform.Find("Header").GetChild(2).gameObject.SetActive(true);
 
+        UI.instance.DeckFilterButtons.transform.GetChild(0).GetComponent<Image>().color = new Color(0, 0, 0, 0.5f);
+        UI.instance.DeckFilterButtons.transform.GetChild(1).GetComponent<Image>().color = new Color(0, 0, 0, 0.5f);
+        UI.instance.DeckFilterButtons.transform.GetChild(2).GetComponent<Image>().color = new Color(0, 0, 0, 0.5f);
+
         /*Debug.Log("count: "+AppManager.instance.GetComponent<LoadDeck>().loadedDecks.Count);
         Debug.Log("count: "+AppManager.instance.GetComponent<LoadDeck>().loadedDecks[0].deckName);*/
     }

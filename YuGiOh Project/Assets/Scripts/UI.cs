@@ -26,6 +26,7 @@ public class UI : MonoBehaviour
     // info dropdown object
     public RectTransform infoDropdown;
     public RectTransform FilterButtons; 
+    public RectTransform DeckFilterButtons; 
     public RectTransform DeckButtons;
     public RectTransform MainMenuButtons;
 
@@ -248,8 +249,14 @@ public class UI : MonoBehaviour
 
 
         // set the container size to clamp to the segments
-        // CLAMP COPY TO ELSEWHERE
         container.sizeDelta = new Vector2(container.sizeDelta.x, GetContainerHeight(records.Count));
+
+        float bottom = container.offsetMax.y;
+        if (bottom > 0)
+        {
+            container.offsetMin -= new Vector2(0, bottom);
+            container.offsetMax -= new Vector2(0, bottom);
+        }
     }
 
     // deactivate all of the segment objects
@@ -433,7 +440,13 @@ public class UI : MonoBehaviour
         }
         
         deckContainer.sizeDelta = new Vector2(GetDeckWidth(tempCount), deckContainer.sizeDelta.y);
-
+        
+        float right = deckContainer.offsetMax.x;
+        if (right > 0)
+        {
+            deckContainer.offsetMin -= new Vector2(right,0);
+            deckContainer.offsetMax -= new Vector2(right,0);
+        }
 
         //deckContainer.sizeDelta = new Vector2(0, container.sizeDelta.y);
     }
@@ -838,7 +851,13 @@ public class UI : MonoBehaviour
             AppManager.instance.StartCoroutine("GetData", input.text.Remove(input.text.Length - 1));
             // disable the info dropdown
             infoDropdown.gameObject.SetActive(false);
-            FilterButtons.gameObject.SetActive(true);   
+            FilterButtons.gameObject.SetActive(true);
+
+            FilterButtons.transform.GetChild(0).GetComponent<Image>().color = new Color(0.4f, 0.8f, 0.7f, 1.0f);
+            FilterButtons.transform.GetChild(1).GetComponent<Image>().color = new Color(0, 0, 0, 0.5f);
+            FilterButtons.transform.GetChild(2).GetComponent<Image>().color = new Color(0, 0, 0, 0.5f);
+            FilterButtons.transform.GetChild(3).GetComponent<Image>().color = new Color(0, 0, 0, 0.5f);
+            FilterButtons.transform.GetChild(4).GetComponent<Image>().color = new Color(0, 0, 0, 0.5f);
         }
 
         

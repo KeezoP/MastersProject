@@ -98,6 +98,7 @@ public class DeckBuild : MonoBehaviour
 
     public string deckName;
     public string deckNotes;
+    int userChoice;
     public bool isSide;
     public bool showAll;
     public RectTransform container;
@@ -130,8 +131,9 @@ public class DeckBuild : MonoBehaviour
         
         DF = (DeckFormat)0;
         deckNotes = "";
+        userChoice = 9999;
     }
-    
+
     public void setDeckName(string input)
     {
         deckName = input;
@@ -150,16 +152,16 @@ public class DeckBuild : MonoBehaviour
             // change 2 button text values
 
             // Main -> Side
-            UI.instance.MainSideButtonTop.GetComponentInChildren<TextMeshProUGUI>().text = "Side: ";
-            UI.instance.MainSideButtonBottom.GetComponentInChildren<TextMeshProUGUI>().text = "Side: ";
+            UI.instance.MainSideButtonTop.GetComponentInChildren<TextMeshProUGUI>().text = "Showing: Side";
+            UI.instance.MainSideButtonBottom.GetComponentInChildren<TextMeshProUGUI>().text = "Showing: Side";
             //Debug.Log("test 1: tmp :" + UI.instance.MainSideButtonTop.GetComponentInChildren<TextMeshProUGUI>().text);
         }
         else {
             isSide = false;
             // change 2 button text values
             // Side -> Main
-            UI.instance.MainSideButtonTop.GetComponentInChildren<TextMeshProUGUI>().text = "Main: ";
-            UI.instance.MainSideButtonBottom.GetComponentInChildren<TextMeshProUGUI>().text = "Main: ";
+            UI.instance.MainSideButtonTop.GetComponentInChildren<TextMeshProUGUI>().text = "Showing: Main";
+            UI.instance.MainSideButtonBottom.GetComponentInChildren<TextMeshProUGUI>().text = "Showing: Main";
         }
 
         if (DeckList.Count > 0)
@@ -510,7 +512,7 @@ public class DeckBuild : MonoBehaviour
         canvas.transform.Find("CardList").gameObject.SetActive(true);
         canvas.transform.Find("CardSearch").gameObject.SetActive(true);
         canvas.transform.Find("DeckBuild").gameObject.SetActive(true);
-        canvas.transform.Find("ChooseDeck").GetChild(0).gameObject.SetActive(false);
+        canvas.transform.Find("ChooseDeck").gameObject.SetActive(false);
         canvas.transform.Find("LoadDeckButtons").gameObject.SetActive(false);
         canvas.transform.Find("Header").GetChild(0).gameObject.SetActive(true);
         canvas.transform.Find("Header").GetChild(2).gameObject.SetActive(true);
@@ -531,7 +533,7 @@ public class DeckBuild : MonoBehaviour
 
         //Debug.Log("Button clicked: " + userDeckName);
 
-        int userChoice = 9999;
+        
 
         for(int i = 0;i<tempList.Count;i++)
         {
@@ -592,7 +594,8 @@ public class DeckBuild : MonoBehaviour
     public void viewDeck() {
 
         GameObject canvas = GameObject.Find("Canvas");
-
+        
+        // if returning to deck edit
         if (viewScreen.activeInHierarchy) {
 
             foreach (Transform child in viewContainer.transform)
@@ -608,8 +611,11 @@ public class DeckBuild : MonoBehaviour
             canvas.transform.Find("CardSearch").gameObject.SetActive(true);
             canvas.transform.Find("DeckBuild").gameObject.SetActive(true);
 
+            UI.instance.ToggleViewButton.GetComponentInChildren<TextMeshProUGUI>().text = "View:";
             return;
         }
+
+        UI.instance.ToggleViewButton.GetComponentInChildren<TextMeshProUGUI>().text = "Edit:";
 
         canvas.transform.Find("CardList").gameObject.SetActive(false);
         canvas.transform.Find("CardSearch").gameObject.SetActive(false);
@@ -730,19 +736,19 @@ public class DeckBuild : MonoBehaviour
         for (int p = 0;p < MainPrefabs.Count;p++)
         {
             MainPrefabs[p].transform.SetParent(viewContainer.transform);
-            MainPrefabs[p].transform.localScale = new Vector3(0.75f, 0.75f, 0.75f);
+            MainPrefabs[p].transform.localScale = new Vector3(0.8f, 0.8f, 0.8f);
         }
 
         for (int p = 0; p < SidePrefabs.Count; p++)
         {
             SidePrefabs[p].transform.SetParent(viewContainer.transform);
-            SidePrefabs[p].transform.localScale = new Vector3(0.75f, 0.75f, 0.75f);
+            SidePrefabs[p].transform.localScale = new Vector3(0.8f, 0.8f, 0.8f);
         }
 
 
 
         int divby5 = MainPrefabs.Count + SidePrefabs.Count;
-        divby5 /= 5; divby5 += 1;
+        divby5 /= 5; //divby5 += 1;
 
         viewContainer.sizeDelta = new Vector2(viewContainer.sizeDelta.x, UI.instance.GetViewContainerHeight(divby5));
         //PrintTest();
@@ -751,11 +757,17 @@ public class DeckBuild : MonoBehaviour
 
     public void isShowingAll()
     {
-        if (showAll)
-            showAll = false;
-        else
-            showAll = true;
 
+        if (showAll == false)
+        {
+            showAll = true;
+            UI.instance.AllUniqueButton.GetComponentInChildren<TextMeshProUGUI>().text = "Showing: All";
+        }
+        else
+        {
+            showAll = false;
+            UI.instance.AllUniqueButton.GetComponentInChildren<TextMeshProUGUI>().text = "Showing: Unique";
+        }
         viewDeck();
         viewDeck();
     }
@@ -763,7 +775,7 @@ public class DeckBuild : MonoBehaviour
     public void saveNotes()
     {
         deckNotes = GameObject.Find("NotesSection").GetComponent<TMP_InputField>().text;
-        
+        tempList[userChoice].deckNotes = deckNotes;
     }
 
 }

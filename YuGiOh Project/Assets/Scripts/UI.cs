@@ -48,6 +48,8 @@ public class UI : MonoBehaviour
     public Button RemoveCardButton;
     public Button MainSideButtonTop;
     public Button MainSideButtonBottom;
+    public Button AllUniqueButton;
+    public Button ToggleViewButton;
     public TMP_Dropdown FormatChoice;
 
     public Image cardArt;
@@ -361,7 +363,6 @@ public class UI : MonoBehaviour
                             else if (card.SideCopies == 3)
                             {
                                 //Debug.Log(card.name);
-                                Debug.Log(card.name + ": " + "side 3");
                                 copiesRun.GetComponent<Image>().sprite = ThreeCard;
                             }
                             else
@@ -993,7 +994,8 @@ public class UI : MonoBehaviour
         AppManager.instance.GetComponent<DeckBuild>().FilteredDeckList.Clear();
         AppManager.instance.GetComponent<DeckBuild>().cardPrefabs.Clear();
         AppManager.instance.GetComponent<LoadDeck>().loadedDecks.Clear();
-        UI.instance.segments.Clear();
+        ToggleViewButton.GetComponentInChildren<TextMeshProUGUI>().text = "View:";
+        segments.Clear();
 
 
         foreach (Transform child in AppManager.instance.GetComponent<LoadDeck>().LDC.transform)
@@ -1013,9 +1015,10 @@ public class UI : MonoBehaviour
 
         AppManager.instance.GetComponent<LoadDeck>().LoadAllDecks();
         AppManager.instance.GetComponent<DrawCalc>().Return();
+        AppManager.instance.GetComponent<DrawCalc>().ReturnDrawCalc();
 
 
-        if(FilterButtons.gameObject.activeInHierarchy)
+        if (FilterButtons.gameObject.activeInHierarchy)
         {
             AppManager.instance.jsonResult.Clear();
             AppManager.instance.jsonFilter.Clear();
@@ -1035,10 +1038,12 @@ public class UI : MonoBehaviour
         canvas.transform.Find("DeckBuild").gameObject.SetActive(false);
         canvas.transform.Find("DeckView").gameObject.SetActive(false);
         canvas.transform.Find("DrawCalcView").gameObject.SetActive(false);
-        canvas.transform.Find("ChooseDeck").GetChild(0).gameObject.SetActive(true);
+        canvas.transform.Find("ChooseDeck").gameObject.SetActive(true);
         canvas.transform.Find("LoadDeckButtons").gameObject.SetActive(true);
         canvas.transform.Find("Header").GetChild(0).gameObject.SetActive(false);
         canvas.transform.Find("Header").GetChild(2).gameObject.SetActive(false);
+
+        
     }
 
     public void updateSegments()

@@ -9,11 +9,16 @@ public class DrawCalc : MonoBehaviour
 {
 
     private bool AddingToHand;
+    private bool ShowingPercent;
     public Button toggleHandButton;
+    public Button togglePercentButton;
     public GameObject DrawCalcScreen;
     public RectTransform DCDeckContainer;
     public RectTransform DCHandContainer;
-    public RectTransform OCCButtons;
+    public RectTransform ProbMainMenuButtons;
+    public RectTransform ProbFeatureButtons;
+    public RectTransform DrawCalcMainMenuButtons;
+    public RectTransform DrawCalcFeatureButtons;
     public List<GameObject> Prefabs;
     public List<GameObject> PrefabsHand;
     public List<DCCard> DeckCards;
@@ -26,6 +31,7 @@ public class DrawCalc : MonoBehaviour
     public void Awake()
     {
         AddingToHand = true;
+        ShowingPercent = true;
         Prefabs = new();
         DeckCards = new();
         OCCSuccesses = 1;
@@ -59,6 +65,45 @@ public class DrawCalc : MonoBehaviour
         {
             AddingToHand = true;
             toggleHandButton.GetComponentInChildren<TextMeshProUGUI>().text = "Add To Hand?: Yes";
+        }
+    }
+
+    public void ToggleShowPercent()
+    {
+        if (ShowingPercent)
+        {
+            ShowingPercent = false;
+            togglePercentButton.GetComponentInChildren<TextMeshProUGUI>().text = "Show %?: No";
+
+            for (int i = 0; i < Prefabs.Count; i++)
+            {
+                Prefabs[i].transform.GetChild(2).gameObject.SetActive(false);
+                Prefabs[i].transform.GetChild(3).gameObject.SetActive(false);
+            }
+
+            for (int i = 0; i < PrefabsHand.Count; i++)
+            {
+                PrefabsHand[i].transform.GetChild(2).gameObject.SetActive(false);
+                PrefabsHand[i].transform.GetChild(3).gameObject.SetActive(false);
+            }
+        }
+
+        else
+        {
+            ShowingPercent = true;
+            togglePercentButton.GetComponentInChildren<TextMeshProUGUI>().text = "Show %?: Yes";
+
+            for (int i = 0; i < Prefabs.Count; i++)
+            {
+                Prefabs[i].transform.GetChild(2).gameObject.SetActive(true);
+                Prefabs[i].transform.GetChild(3).gameObject.SetActive(true);
+            }
+
+            for (int i = 0; i < PrefabsHand.Count; i++)
+            {
+                PrefabsHand[i].transform.GetChild(2).gameObject.SetActive(true);
+                PrefabsHand[i].transform.GetChild(3).gameObject.SetActive(true);
+            }
         }
     }
 
@@ -158,6 +203,18 @@ public class DrawCalc : MonoBehaviour
         Prefabs = MainPrefabs;
         currentDeckSize = deckSize;
         CalculateDrawChance();
+
+        if (ShowingPercent) 
+        {
+            for (int i = 0; i < Prefabs.Count; i++)
+            {
+                Prefabs[i].transform.GetChild(2).gameObject.SetActive(true);
+                Prefabs[i].transform.GetChild(3).gameObject.SetActive(true);
+            }
+        }
+
+
+        
     }
 
     public void ClickCard(string searchName)
@@ -243,9 +300,24 @@ public class DrawCalc : MonoBehaviour
             DCHandContainer.sizeDelta = new Vector2(0,0);
             currentDeckSize = deckSize;
             CalculateDrawChance();
+
+            if (ShowingPercent)
+            {
+                for (int i = 0; i < Prefabs.Count; i++)
+                {
+                    Prefabs[i].transform.GetChild(2).gameObject.SetActive(true);
+                    Prefabs[i].transform.GetChild(3).gameObject.SetActive(true);
+                }
+            }
         }
 
         
+    }
+
+    public void ResetProb()
+    {
+        ResetDrawCalc();
+        OneCardComboTargets = 0;
     }
 
     public float CalcHandWidth(int count)
@@ -313,7 +385,6 @@ public class DrawCalc : MonoBehaviour
         ResetDrawCalc();
         for(int i =0;i<5;i++)
         {
-            currentDeckSize--;
             DrawOneCard();
             
         }
@@ -344,11 +415,33 @@ public class DrawCalc : MonoBehaviour
 
         GameObject canvas = GameObject.Find("Canvas");
 
-        canvas.transform.Find("CardList").gameObject.SetActive(true);
+        //canvas.transform.Find("CardList").gameObject.SetActive(true);
         canvas.transform.Find("CardSearch").gameObject.SetActive(true);
-        canvas.transform.Find("DeckBuild").gameObject.SetActive(true);
+        //canvas.transform.Find("DeckBuild").gameObject.SetActive(true);
         canvas.transform.Find("DeckView").gameObject.SetActive(true);
         canvas.transform.Find("MainMenuButtons").gameObject.SetActive(true);
+    }
+
+    public void ReturnDrawCalc()
+    {
+        // reattach test hands listeners.
+        for (int i = 0; i < Prefabs.Count; i++)
+        {
+            Prefabs[i].GetComponent<Button>().onClick.RemoveAllListeners();
+            string searchName = Prefabs[i].name;
+
+            Prefabs[i].GetComponent<Button>().onClick.AddListener(() => { ClickCard(searchName); });
+
+        }
+
+
+
+        ProbMainMenuButtons.gameObject.SetActive(false);
+        ProbFeatureButtons.gameObject.SetActive(false);
+        DrawCalcFeatureButtons.gameObject.SetActive(true);
+        DrawCalcMainMenuButtons.gameObject.SetActive(true);
+
+        ResetDrawCalc();
     }
 
     public void CalculateDrawChance()
@@ -362,14 +455,10 @@ public class DrawCalc : MonoBehaviour
                 chance *= 100.0f;
 
                 chance = Mathf.Round(chance * 100f) / 100f;
-
-                Prefabs[i].transform.GetChild(2).gameObject.SetActive(true);
-                Prefabs[i].transform.GetChild(3).gameObject.SetActive(true);
+    
                 Prefabs[i].transform.GetChild(3).gameObject.GetComponent<TextMeshProUGUI>().text = chance.ToString() + "%";
             } else
             {
-                Prefabs[i].transform.GetChild(2).gameObject.SetActive(true);
-                Prefabs[i].transform.GetChild(3).gameObject.SetActive(true);
                 Prefabs[i].transform.GetChild(3).gameObject.GetComponent<TextMeshProUGUI>().text ="0%";
             }
             
@@ -399,14 +488,14 @@ public class DrawCalc : MonoBehaviour
         fac2 = CalcFactorial(B);
         fac3 = CalcFactorial(A-B);
         //Debug.Log("test: " + CalcFactorial(A) / (CalcFactorial(B) * CalcFactorial(A - B)));
-        Debug.Log("A: " + fac1);
-        Debug.Log("B: " + fac2);
-        Debug.Log("A-B: " + fac3);
+        //Debug.Log("A: " + fac1);
+        //Debug.Log("B: " + fac2);
+        //Debug.Log("A-B: " + fac3);
 
         temp = fac2 * fac3;
-        Debug.Log("Temp: " + temp);
+        //Debug.Log("Temp: " + temp);
         double returnVal = fac1 / temp;
-        Debug.Log("F: " + returnVal);
+        //Debug.Log("F: " + returnVal);
         return returnVal;
     }
 
@@ -414,7 +503,7 @@ public class DrawCalc : MonoBehaviour
     {
 
 
-        if (x < 0 || x > N)
+        if (x < 0 || x > N || x > n)
         {
             Debug.Log("Required Successes Invalid: "+x);
             return false;
@@ -442,6 +531,48 @@ public class DrawCalc : MonoBehaviour
 
         return true;
     }
+
+    public void ViewProbMenu()
+    {
+        ResetProb();
+
+        // reset deck data
+        deckSize = 0;
+        for (int i = 0; i < DeckCards.Count; i++)
+        {
+            DeckCards[i].currentCopies = DeckCards[i].totalCopies;
+            deckSize += DeckCards[i].totalCopies;
+        }
+        currentDeckSize = deckSize;
+
+        // reset hand data
+        if (PrefabsHand.Count > 0)
+            PrefabsHand.Clear();
+
+        foreach (Transform child in DCHandContainer.transform)
+            Destroy(child.gameObject);
+
+        // display menu buttons
+        GameObject canvas = GameObject.Find("Canvas");
+
+        canvas.transform.Find("MainMenuButtons").gameObject.SetActive(false);
+        ProbMainMenuButtons.gameObject.SetActive(true);
+        ProbFeatureButtons.gameObject.SetActive(true);
+        DrawCalcFeatureButtons.gameObject.SetActive(false);
+        DrawCalcMainMenuButtons.gameObject.SetActive(false);
+
+        if (ShowingPercent)
+        {
+            for (int i = 0; i < Prefabs.Count; i++)
+            {
+                Prefabs[i].transform.GetChild(2).gameObject.SetActive(false);
+                Prefabs[i].transform.GetChild(3).gameObject.SetActive(false);
+            }
+        }
+
+        ReadyOCCCalc();
+    }
+
     
     public void ReadyOCCCalc()
     {
@@ -455,26 +586,6 @@ public class DrawCalc : MonoBehaviour
             Prefabs[i].GetComponent<Button>().onClick.AddListener(() => { AddOCCTarget(searchName); });
 
         }
-        // reset deck data
-        deckSize = 0;
-        for (int i = 0; i < DeckCards.Count; i++)
-        {
-            DeckCards[i].currentCopies = DeckCards[i].totalCopies;
-            deckSize += DeckCards[i].totalCopies;
-        }
-        currentDeckSize = deckSize;
-
-        // reset hand data
-        if (PrefabsHand.Count > 0)
-        PrefabsHand.Clear();
-        
-        foreach (Transform child in DCHandContainer.transform)
-            Destroy(child.gameObject);
-
-        // display menu buttons
-        GameObject canvas = GameObject.Find("Canvas");
-        canvas.transform.Find("MainMenuButtons").gameObject.SetActive(false);
-        OCCButtons.gameObject.SetActive(true);
     }
 
     public void AddOCCTarget(string searchName)
@@ -558,13 +669,32 @@ public class DrawCalc : MonoBehaviour
         int N = deckSize;
         int n = 5;
         int k = OneCardComboTargets;
-        double probability;
+        List<double> probabilities = new();
+        double exactOne;
+        double moreThenOne;
+        double atLeastOne;
 
         if (ValidateInputs(x, N, n, k))
         {
-            probability = HypergeometricFormulaCalc(x, N, n, k);
-            Debug.Log("Probability: " + probability);
-            //Debug.Log("P%: " + Mathf.Round(probability * 100f) / 100f);
+
+            for(int i = 1;i<6;i++)
+            {
+                probabilities.Add(HypergeometricFormulaCalc(i, N, n, k));
+
+            }
+            //ExactOne = HypergeometricFormulaCalc(x, N, n, k);
+
+            // exactly one
+            exactOne = probabilities[0];
+            // more than one
+            moreThenOne = probabilities[1] + probabilities[2] + probabilities[3] + probabilities[4];
+            // one or more
+            atLeastOne = exactOne + moreThenOne;
+
+            Debug.Log("Exactly 1: "+ ((float)exactOne*100.0f).ToString("n2")+"%     " + exactOne);
+            Debug.Log("More than 1: "+ ((float)moreThenOne*100.0f).ToString("n2")+"%     " + moreThenOne);
+            Debug.Log("At Least 1: "+ ((float)atLeastOne*100.0f).ToString("n2")+"%     " + atLeastOne);
+
         }
     }
     public double HypergeometricFormulaCalc(int x, int N, int n, int k)
@@ -579,21 +709,13 @@ public class DrawCalc : MonoBehaviour
             k = Potential Successes
         */
 
-        //Debug.Log("x: " + x);
-        //Debug.Log("N: " + N);
-        //Debug.Log("n: " + n);
-        //Debug.Log("k: " + k);
+        
         int A = N - k;
         int B = n - x;
-
         double comA = CalcCombinations(k, x);
         double comB = CalcCombinations(A, B);
         double comC = CalcCombinations(N, n);
-
         double temp = comA * comB;
-        Debug.Log(comA + " * " + comB + " / " + comC);
-        Debug.Log(temp + " / " + comC);
-        
         double answer = temp / comC;
 
         return answer;

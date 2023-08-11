@@ -80,7 +80,10 @@ public class AppManager : MonoBehaviour
         haveStaples = false;
     }
 
-    
+    void Start()
+    {
+        Screen.SetResolution(800, 1422, true);
+    }
 
     public void FilterByExampleButton (int filterIndex)
     {
@@ -437,9 +440,7 @@ public class AppManager : MonoBehaviour
         UnityWebRequest webReq = new UnityWebRequest();
         webReq.downloadHandler = new DownloadHandlerBuffer();
 
-        // url and query
-        //webReq.url = String.Format("{0}?fname={1}&desc={1}", url, cardName);
-
+        
         string format = "";
 
         DeckBuild.DeckFormat tempFormat = (DeckBuild.DeckFormat)AppManager.instance.GetComponent<DeckBuild>().getFormat();
@@ -462,10 +463,8 @@ public class AppManager : MonoBehaviour
                 break;
         }
 
-
-        // test
-        webReq.url = String.Format("{0}?fname={1}{2}",url,cardName, format);
-
+        // url and query
+        webReq.url = String.Format("{0}?fname={1}&desc={1}{2}", url, cardName,format);
 
         Debug.Log("attempt to search: " + webReq.url);
         yield return webReq.SendWebRequest();

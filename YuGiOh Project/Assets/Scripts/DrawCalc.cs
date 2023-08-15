@@ -19,6 +19,7 @@ public class DrawCalc : MonoBehaviour
     public Button OneCCButton;
     public Button TwoCCButton;
     public Button CalcProbButton;
+    public Button CalcDesiresButton;
     public GameObject DrawCalcScreen;
     public RectTransform DCDeckContainer;
     public RectTransform DCHandContainer;
@@ -1460,6 +1461,166 @@ public class DrawCalc : MonoBehaviour
 
     public void CalcDesires()
     {
+        double banish0 =0;
+        double banish1 = 0;
+        double banish2 = 0;
+        double banish3 = 0;
 
+        double drawBan0 = 0;
+        double drawBan1 = 0;
+        double drawBan2 = 0;
+        double drawBan3 = 0;
+
+        double chance0 = 0;
+        double chance1 = 0;
+        double chance2 = 0;
+        double chance3 = 0;
+
+        // for now only calculating the interactions of 1 card with desires
+        if(PrefabsHand.Count == 1 && currentDeckSize >= 12)
+        {
+            for(int i = 0;i<Prefabs.Count;i++)
+            {
+                // if found card data
+                if(PrefabsHand[0].name.Contains(DeckCards[i].cardName))
+                {
+                    int totalCopies = DeckCards[i].totalCopies;
+
+                    /*
+                        h(x;N,n,k) = [kCx][N-kCn-x]/[NCn]
+                        -C- is unique combinations given both variables
+            
+                        x = exact successes wanted
+                        N = Total size
+                        n = Sample size
+                        k = Potential Successes
+                    */
+
+                    // calc banish %
+                    switch (totalCopies)
+                    {
+                        case 1:
+                            // % chance banish 0
+                            banish0 = HypergeometricFormulaCalc(0, currentDeckSize, 10, totalCopies);
+                            // % chance banish 1
+                            banish1 = HypergeometricFormulaCalc(1, currentDeckSize, 10, totalCopies);
+                            break;
+
+                        case 2:
+                            // % chance banish 0
+                            banish0 = HypergeometricFormulaCalc(0, currentDeckSize, 10, totalCopies);
+                            // % chance banish 1
+                            banish1 = HypergeometricFormulaCalc(1, currentDeckSize, 10, totalCopies);
+                            // % chance banish 2
+                            banish2 = HypergeometricFormulaCalc(2, currentDeckSize, 10, totalCopies);
+                            break;
+
+                        case 3:
+                            // % chance banish 0
+                            banish0 = HypergeometricFormulaCalc(0, currentDeckSize, 10, totalCopies);
+                            // % chance banish 1
+                            banish1 = HypergeometricFormulaCalc(1, currentDeckSize, 10, totalCopies);
+                            // % chance banish 2
+                            banish2 = HypergeometricFormulaCalc(2, currentDeckSize, 10, totalCopies);
+                            // % chance banish 3
+                            banish3 = HypergeometricFormulaCalc(3, currentDeckSize, 10, totalCopies);
+                            break;
+                    }
+
+                    // calc draw %
+                    switch(totalCopies)
+                    {
+                        case 1:
+                            drawBan0 = HypergeometricFormulaCalc(1, currentDeckSize-10, 2, totalCopies);
+                            drawBan1 = 0;
+                            break;
+
+                        case 2:
+                            drawBan0 = HypergeometricFormulaCalc(1, currentDeckSize - 10, 2, totalCopies);
+                            drawBan1 = HypergeometricFormulaCalc(1, currentDeckSize - 10, 2, totalCopies)
+                                        + HypergeometricFormulaCalc(2, currentDeckSize - 10, 2, totalCopies);
+                            drawBan2 = 0;
+                            break;
+
+                        case 3:
+                            drawBan0 = HypergeometricFormulaCalc(1, currentDeckSize - 10, 2, totalCopies);
+                            drawBan1 = HypergeometricFormulaCalc(1, currentDeckSize - 10, 2, totalCopies)
+                                        + HypergeometricFormulaCalc(2, currentDeckSize - 10, 2, totalCopies);
+                            drawBan2 = HypergeometricFormulaCalc(1, currentDeckSize - 10, 2, totalCopies)
+                                        + HypergeometricFormulaCalc(2, currentDeckSize - 10, 2, totalCopies)
+                                        + HypergeometricFormulaCalc(3, currentDeckSize - 10, 2, totalCopies);
+                            drawBan3 = 0;
+                            break;
+                    }
+                    
+
+                    // display results
+                    switch(totalCopies)
+                    {
+                        case 1:
+                            banish0 = Mathf.Clamp((float)banish0 * 100, 0, 100.0f);
+                            banish1 = Mathf.Clamp((float)banish1 * 100, 0, 100.0f);
+
+                            drawBan0 = Mathf.Clamp((float)drawBan0 * 100, 0, 100.0f);
+
+                            chance0 = Mathf.Clamp((float)(banish0 + drawBan0) * 100,0,100.0f);
+                            chance1 = 0;
+
+                            Debug.Log("Banish 0: "+banish0.ToString("n3") + "% Draw: "+drawBan0.ToString("n3") + "% Total: "+chance0.ToString("n3") + "%");
+                            Debug.Log("Banish 1: "+banish1.ToString("n3") + "% Draw: "+drawBan1.ToString("n3") + "% Total: "+chance1.ToString("n3") + "%");
+                            break;
+
+                        case 2:
+                            banish0 = Mathf.Clamp((float)banish0 * 100, 0, 100.0f);
+                            banish1 = Mathf.Clamp((float)banish1 * 100, 0, 100.0f);
+                            banish2 = Mathf.Clamp((float)banish2 * 100, 0, 100.0f);
+
+                            drawBan0 = Mathf.Clamp((float)drawBan0 * 100, 0, 100.0f);
+                            drawBan1 = Mathf.Clamp((float)drawBan1 * 100, 0, 100.0f);
+
+                            chance0 = Mathf.Clamp((float)(banish0 + drawBan0) * 100, 0, 100.0f);
+                            chance1 = Mathf.Clamp((float)(banish1 + drawBan1) * 100, 0, 100.0f);
+                            chance2 = 0;
+
+                            Debug.Log("Banish 0: " + banish0.ToString("n3") + "% Draw: " + drawBan0.ToString("n3") + "% Total: " + chance0.ToString("n3") + "%");
+                            Debug.Log("Banish 1: " + banish1.ToString("n3") + "% Draw: " + drawBan1.ToString("n3") + "% Total: " + chance1.ToString("n3") + "%");
+                            Debug.Log("Banish 2: " + banish2.ToString("n3") + "% Draw: " + drawBan3.ToString("n3") + "% Total: " + chance2.ToString("n3") + "%");
+                            break;
+
+                        case 3:
+                            banish0 = Mathf.Clamp((float)banish0 * 100, 0, 100.0f);
+                            banish1 = Mathf.Clamp((float)banish1 * 100, 0, 100.0f);
+                            banish2 = Mathf.Clamp((float)banish2 * 100, 0, 100.0f);
+                            banish3 = Mathf.Clamp((float)banish3 * 100, 0, 100.0f);
+
+                            drawBan0 = Mathf.Clamp((float)drawBan0 * 100, 0, 100.0f);
+                            drawBan1 = Mathf.Clamp((float)drawBan1 * 100, 0, 100.0f);
+                            drawBan3 = Mathf.Clamp((float)drawBan3 * 100, 0, 100.0f);
+
+                            chance0 = Mathf.Clamp((float)(banish0 + drawBan0) * 100, 0, 100.0f);
+                            chance1 = Mathf.Clamp((float)(banish1 + drawBan1) * 100, 0, 100.0f);
+                            chance2 = Mathf.Clamp((float)(banish2 + drawBan3) * 100, 0, 100.0f);
+                            chance3 = 0;
+
+                            Debug.Log("Banish 0: " + banish0.ToString("n3") + "% Draw: " + drawBan0.ToString("n3") + "% Total: " + chance0.ToString("n3") + "%");
+                            Debug.Log("Banish 1: " + banish1.ToString("n3") + "% Draw: " + drawBan1.ToString("n3") + "% Total: " + chance1.ToString("n3") + "%");
+                            Debug.Log("Banish 2: " + banish2.ToString("n3") + "% Draw: " + drawBan3.ToString("n3") + "% Total: " + chance2.ToString("n3") + "%");
+                            Debug.Log("Banish 3: " + banish3.ToString("n3") + "% Draw: " + drawBan3.ToString("n3") + "% Total: " + chance3.ToString("n3") + "%");
+                            break;
+
+                    }
+
+
+
+
+
+                    break;
+                }
+            }
+        } 
+        else if(deckSize < 12)
+            probResults.text = "Need at least 12 cards in deck, 10 to banish, 2 to draw";
+        else
+            probResults.text = "Select Exactly 1 Card you want to test with Pot of Desires";
     }
 }

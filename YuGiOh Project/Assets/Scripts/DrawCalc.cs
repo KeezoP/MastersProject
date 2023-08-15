@@ -10,8 +10,15 @@ public class DrawCalc : MonoBehaviour
 
     private bool AddingToHand;
     private bool ShowingPercent;
+    private bool isOneNotTwo;
+    private bool isTestHands;
+    private bool ShowingPercentTCC;
     public Button toggleHandButton;
     public Button togglePercentButton;
+    public Button toggleTCCButton;
+    public Button OneCCButton;
+    public Button TwoCCButton;
+    public Button CalcProbButton;
     public GameObject DrawCalcScreen;
     public RectTransform DCDeckContainer;
     public RectTransform DCHandContainer;
@@ -21,7 +28,11 @@ public class DrawCalc : MonoBehaviour
     public RectTransform DrawCalcFeatureButtons;
     public List<GameObject> Prefabs;
     public List<GameObject> PrefabsHand;
+    public List<GameObject> PrefabsPairs;
+    public List<int> PairsperCard;
     public List<DCCard> DeckCards;
+    public TextMeshProUGUI probResults;
+    public RectTransform Results;
     public int deckSize;
     public int currentDeckSize;
 
@@ -34,7 +45,11 @@ public class DrawCalc : MonoBehaviour
         ShowingPercent = true;
         Prefabs = new();
         DeckCards = new();
+        PairsperCard = new();
         OCCSuccesses = 1;
+        isOneNotTwo = true;
+        isTestHands = true;
+        ShowingPercentTCC = true;
     }
 
     public class DCCard
@@ -66,6 +81,12 @@ public class DrawCalc : MonoBehaviour
             AddingToHand = true;
             toggleHandButton.GetComponentInChildren<TextMeshProUGUI>().text = "Add To Hand?: Yes";
         }
+
+        probResults.text = "Click on Cards in Deck to ";
+        if (AddingToHand)
+            probResults.text += "Add to Hand";
+        else
+            probResults.text += "Remove from Deck";
     }
 
     public void ToggleShowPercent()
@@ -107,6 +128,23 @@ public class DrawCalc : MonoBehaviour
         }
     }
 
+    public void ToggleShowPercentTCC()
+    {
+        if (ShowingPercentTCC)
+        {
+            ShowingPercentTCC = false;
+            toggleTCCButton.GetComponentInChildren<TextMeshProUGUI>().text = "Showing: Total Hands";
+            CalcTCC(true);
+        }
+
+        else
+        {
+            ShowingPercentTCC = true;
+            toggleTCCButton.GetComponentInChildren<TextMeshProUGUI>().text = "Showing: Draw %";
+            CalcTCC(true);
+        }
+    }
+
     public void LoadDrawView()
     {
         GameObject canvas = GameObject.Find("Canvas");
@@ -121,6 +159,14 @@ public class DrawCalc : MonoBehaviour
         AppManager.instance.FilterDeck(3);
         List<GameObject> cardPrefabs = AppManager.instance.GetComponent<DeckBuild>().cardPrefabs;
         List<DeckBuild.Card> DeckList = AppManager.instance.GetComponent<DeckBuild>().DeckList;
+
+
+        probResults.text = "Click on Cards in Deck to ";
+        if (AddingToHand)
+            probResults.text += "Add to Hand";
+        else
+            probResults.text += "Remove from Deck";
+
 
         // for each card in deck
 
@@ -303,10 +349,13 @@ public class DrawCalc : MonoBehaviour
 
             if (ShowingPercent)
             {
-                for (int i = 0; i < Prefabs.Count; i++)
+                if (!ProbMainMenuButtons.gameObject.activeInHierarchy)
                 {
-                    Prefabs[i].transform.GetChild(2).gameObject.SetActive(true);
-                    Prefabs[i].transform.GetChild(3).gameObject.SetActive(true);
+                    for (int i = 0; i < Prefabs.Count; i++)
+                    {
+                        Prefabs[i].transform.GetChild(2).gameObject.SetActive(true);
+                        Prefabs[i].transform.GetChild(3).gameObject.SetActive(true);
+                    }
                 }
             }
         }
@@ -318,6 +367,52 @@ public class DrawCalc : MonoBehaviour
     {
         ResetDrawCalc();
         OneCardComboTargets = 0;
+        //Results.gameObject.SetActive(false);
+        //Vector3 tempVector = DCHandContainer.parent.GetComponent<RectTransform>().anchoredPosition;
+        //DCHandContainer.parent.GetComponent<RectTransform>().anchoredPosition = new Vector3(tempVector.x, -910, tempVector.z);
+        PairsperCard.Clear();
+
+        foreach(GameObject g in Prefabs)
+        {
+            PairsperCard.Add(0);
+        }
+
+        if (!isTestHands)
+        {
+            // if OCC
+            if (isOneNotTwo)
+            {
+                toggleTCCButton.gameObject.SetActive(false);
+                CalcProbButton.gameObject.SetActive(true);
+                probResults.text = "Select the One Card Combo Starters you want to see";
+                DCHandContainer.GetComponent<HorizontalLayoutGroup>().padding.left = 63;
+                DCHandContainer.GetComponent<HorizontalLayoutGroup>().spacing = 150;
+            }
+            // else if TCC
+            else
+            {
+                probResults.text = "Select First Card for Two Card Combo Pair";
+                DCHandContainer.GetComponent<HorizontalLayoutGroup>().padding.left = 107;
+                DCHandContainer.GetComponent<HorizontalLayoutGroup>().spacing = 252;
+                toggleTCCButton.gameObject.SetActive(true);
+                CalcProbButton.gameObject.SetActive(false);
+            }
+        }
+        // else Test Hands
+        else
+        {
+            toggleTCCButton.gameObject.SetActive(false);
+            CalcProbButton.gameObject.SetActive(true);
+            probResults.text = "Click on Cards in Deck to ";
+            if (AddingToHand)
+                probResults.text += "Add to Hand";
+            else
+                probResults.text += "Remove from Deck";
+
+
+            DCHandContainer.GetComponent<HorizontalLayoutGroup>().padding.left = 63;
+            DCHandContainer.GetComponent<HorizontalLayoutGroup>().spacing = 126;
+        }
     }
 
     public float CalcHandWidth(int count)
@@ -434,14 +529,15 @@ public class DrawCalc : MonoBehaviour
 
         }
 
-
+        isTestHands = true;
+        isOneNotTwo = true;
 
         ProbMainMenuButtons.gameObject.SetActive(false);
         ProbFeatureButtons.gameObject.SetActive(false);
         DrawCalcFeatureButtons.gameObject.SetActive(true);
         DrawCalcMainMenuButtons.gameObject.SetActive(true);
 
-        ResetDrawCalc();
+        ResetProb();
     }
 
     public void CalculateDrawChance()
@@ -510,7 +606,7 @@ public class DrawCalc : MonoBehaviour
         }
         else if (x > k)
         {
-            Debug.Log("Required successes larger potential successes: "+x+" > "+k);
+            Debug.Log("Please select card(s) for calculation"+x+" > "+k);
             return false;
         }
         else if (N < 40 || N > 60)
@@ -576,9 +672,13 @@ public class DrawCalc : MonoBehaviour
     
     public void ReadyOCCCalc()
     {
-        // remove listeners from deck Prefabs
+        isOneNotTwo = true;
+        isTestHands = false;
+        ResetProb();
 
-        for(int i =0;i< Prefabs.Count;i++)
+
+        // remove listeners from deck Prefabs
+        for (int i =0;i< Prefabs.Count;i++)
         {
             Prefabs[i].GetComponent<Button>().onClick.RemoveAllListeners();
             string searchName = Prefabs[i].name;
@@ -586,8 +686,481 @@ public class DrawCalc : MonoBehaviour
             Prefabs[i].GetComponent<Button>().onClick.AddListener(() => { AddOCCTarget(searchName); });
 
         }
+        
+        OneCCButton.GetComponent<Image>().color = new Color(0.44f, 0.7f, 0.8f, 1.0f);
+        TwoCCButton.GetComponent<Image>().color = new Color(0, 0, 0, 0.5f);
     }
 
+    public void ReadyTCCCalc()
+    {
+        isOneNotTwo = false;
+        isTestHands = false;
+        ResetProb();
+
+
+        // remove listeners from deck Prefabs
+        for (int i = 0; i < Prefabs.Count; i++)
+        {
+            Prefabs[i].GetComponent<Button>().onClick.RemoveAllListeners();
+            string searchName = Prefabs[i].name;
+
+            Prefabs[i].GetComponent<Button>().onClick.AddListener(() => { AddTCCTarget(searchName); });
+
+        }
+        //Debug.Log("PPC: " + PairsperCard.Count);
+        OneCCButton.GetComponent<Image>().color = new Color(0, 0, 0, 0.5f);
+        TwoCCButton.GetComponent<Image>().color = new Color(0.44f, 0.7f, 0.8f, 1.0f);
+
+    }
+    public void AddTCCTarget(string searchName)
+    {
+        bool isLeft = true;
+        if (PrefabsHand.Count % 2 != 0)
+            isLeft = false;
+
+        for (int i = 0; i < DeckCards.Count; i++)
+        {
+            // get card data
+            if (searchName.Contains(DeckCards[i].cardName)) 
+            {
+                if (Prefabs[i].transform.GetChild(1).gameObject.activeInHierarchy == true)
+                    Debug.Log("invalid option");
+
+                    // if click on invalid card to create a pair
+                    if (Prefabs[i].transform.GetChild(1).gameObject.activeInHierarchy == true)
+                    break;
+
+                bool hasDupe = false;
+
+                // if creating new pair
+                if(isLeft)
+                {
+                    for (int f = 0; f < PrefabsHand.Count; f += 2)
+                    {
+                        if (PrefabsHand[f].name.Equals(PrefabsHand[f + 1].name)
+                            &&PrefabsHand[f].name.Contains(Prefabs[i].name)) {
+                            hasDupe = true;
+                            break;
+                        }
+                            
+                    }
+
+                    if(hasDupe)
+                    {
+                        Prefabs[i].transform.GetChild(1).gameObject.SetActive(true);
+                    }
+
+
+                    // find all current pairs including this card
+                    List<int> FoundPos = new();
+
+                    // for every current pair, find pairs with this card
+                    for (int j = 0; j < PrefabsHand.Count; j++)
+                    {
+                        // if pair found
+                        if (PrefabsHand[j].name.Contains(searchName))
+                        {
+
+                            // is L or R in pair
+                            bool pairLeft = true;
+                            if (j % 2 != 0)
+                                pairLeft = false;
+
+                            string otherName;
+                            if (pairLeft)
+                                otherName = PrefabsHand[j + 1].name;
+                            else
+                                otherName = PrefabsHand[j - 1].name;
+
+                            //Debug.Log("Other card in pair: " + otherName);
+
+                            // find 'other' in prefabs
+                            for (int k = 0; k < Prefabs.Count; k++)
+                            {
+
+                                // if other found
+                                if (otherName.Contains(Prefabs[k].name))
+                                {
+
+                                    Prefabs[k].transform.GetChild(1).gameObject.SetActive(true);
+                                    FoundPos.Add(k);
+                                }
+                            }
+                        }
+
+                    }
+                    //Debug.Log("Pairs Left: " + (DeckCards.Count-FoundPos.Count));
+                    // if able to make a new pair
+                    if (FoundPos.Count-1 < DeckCards.Count)
+                    {
+                        PairsperCard[i]++;
+
+                        GameObject tempPrefabs = Instantiate(Prefabs[i]);
+                        GameObject temp = new();
+                        temp.transform.SetParent(DCHandContainer.transform);
+
+                        tempPrefabs.transform.GetChild(1).gameObject.SetActive(false);
+                        tempPrefabs.transform.SetParent(temp.transform);
+                        temp.AddComponent<RectTransform>();
+                        temp.GetComponent<Transform>().localScale = new Vector3(1, 1, 1);
+                        tempPrefabs.GetComponent<RectTransform>().anchoredPosition = new Vector3(0,0,0);
+                        
+                        tempPrefabs.GetComponent<Button>().onClick.RemoveAllListeners();
+
+                        int PHid = PrefabsHand.Count;
+                        tempPrefabs.GetComponent<Button>().onClick.AddListener(() => { RemoveTCCTarget(searchName, PHid); });
+                        PrefabsHand.Add(tempPrefabs);
+
+                        PrefabsHand.Last<GameObject>().transform.localScale = new Vector3(0.75f, 0.75f, 0.75f);
+                        probResults.text = "Select Second Card for Two Card Combo Pair";
+
+                        /*float width = 0.0f;
+                        
+                        // include all segment widths
+                        width += DCHandContainer.transform.childCount * 252.0f * 0.75f;
+                        Debug.Log("width pre spacing: " + width);
+                        // include the spacing between segments
+                        width += PrefabsHand.Count * DCHandContainer.GetComponent<HorizontalLayoutGroup>().spacing;
+                        Debug.Log("width post spacing: " + width);
+                        */
+                        float width = 64+ (DCHandContainer.transform.childCount * 252.0f);
+                        
+                        if(width > 900)
+                        {
+                            DCHandContainer.sizeDelta = new Vector2(DCHandContainer.sizeDelta.x+ 252, DCHandContainer.sizeDelta.y);
+                            float right = DCHandContainer.offsetMax.x;
+
+                            if (right > 0)
+                            {
+                                DCHandContainer.offsetMin -= new Vector2(right, 0);
+                                DCHandContainer.offsetMax -= new Vector2(right, 0);
+                            }
+                        }
+                        
+                        
+
+
+                        // if more pairs allowed, reset prefabs[i] greyness incase of (L+R) pairs being the same card
+                        if (FoundPos.Count <= DeckCards.Count && !hasDupe)
+                            Prefabs[i].transform.GetChild(1).gameObject.SetActive(false);
+                        else
+                            Prefabs[i].transform.GetChild(1).gameObject.SetActive(true);
+
+                        break;
+                    }
+                    else
+                    {
+                        Prefabs[i].transform.GetChild(1).gameObject.SetActive(true);
+                        break;
+                    }
+
+                }
+
+                // finishing a pair
+                else
+                {
+
+                    // if can use this card to finish pair
+                    if (Prefabs[i].transform.GetChild(1).gameObject.activeInHierarchy != true)
+                    {
+                        PairsperCard[i]++;
+                        GameObject tempPrefabs = Instantiate(Prefabs[i]);
+                        tempPrefabs.transform.SetParent(DCHandContainer.transform.GetChild(DCHandContainer.transform.childCount - 1));
+
+
+                        DCHandContainer.transform.GetChild(DCHandContainer.transform.childCount - 1).GetComponent<Transform>().localScale = new Vector3(1, 1, 1);
+                        tempPrefabs.GetComponent<RectTransform>().anchoredPosition = new Vector3(63, 0, 0);
+
+
+                        tempPrefabs.transform.localScale = new Vector3(0.75f, 0.75f, 0.75f);
+
+                        tempPrefabs.GetComponent<Button>().onClick.RemoveAllListeners();
+
+                        int PHid = PrefabsHand.Count;
+                        tempPrefabs.GetComponent<Button>().onClick.AddListener(() => { RemoveTCCTarget(searchName, PHid); });
+
+                        PrefabsHand.Add(tempPrefabs);
+                        probResults.text = "Select First Card for Two Card Combo Pair";
+
+                        CalcTCC(false);
+
+                    }
+                    foreach (GameObject Pre in Prefabs)
+                        Pre.transform.GetChild(1).gameObject.SetActive(false);
+
+                    
+
+                }
+
+
+                // block all completed card
+
+                for (int c = 0; c < Prefabs.Count;c++)
+                {
+                    if (PairsperCard[c] > DeckCards.Count)
+                    {
+                        Prefabs[c].transform.GetChild(1).gameObject.SetActive(true);
+                    }
+                }
+                
+                
+
+                break;
+
+                
+                
+            }
+        }
+    }
+    public void RemoveTCCTarget(string searchName, int handID)
+    {
+        bool thisLeft = true;
+        
+        if (handID % 2 != 0)
+            thisLeft = false;
+
+        // if click right, destroy right and left
+        if(!thisLeft)
+        {
+            string Right = searchName;
+            string Left = PrefabsHand[handID-1].name;
+
+            int LDeckPos = 9999;
+            int RDeckPos = 9999;
+
+            bool isDupe = Left.Contains(Right);
+            // using hand id, find cards in deck that = PH[handID].name
+
+            // for each card in pair, find positions in deck
+            for (int i = 0; i < DeckCards.Count; i++)
+            {
+
+                // if found left
+                if(Left.Contains(DeckCards[i].cardName))
+                {
+                    
+                    LDeckPos = i;
+                }
+                
+                // if found right
+                if(Right.Contains(DeckCards[i].cardName))
+                {
+                   
+                    RDeckPos = i;
+                }
+
+                // if both found, break;
+                if(LDeckPos != 9999 && RDeckPos != 9999)
+                {
+                    break;
+                }
+            }
+
+            // destroy parent of pair in deck
+            foreach (Transform child in DCHandContainer.transform)
+            {
+                string LTarget = child.GetChild(0).name;
+                string RTarget = child.GetChild(1).name;
+                
+                
+                // if find the game object with children matching targets destroy
+                if (LTarget.Equals(Left) && RTarget.Contains(Right)) {
+                    
+                    // Destroy Object in Hand
+                    Destroy(child.gameObject);
+
+                    // Remove from PH
+                    PrefabsHand.RemoveAt(handID);
+                    PrefabsHand.RemoveAt(handID-1);
+
+                    // remove from PPC
+                    if (!isDupe)
+                    {
+                        PairsperCard[LDeckPos]--;
+                        PairsperCard[RDeckPos]--;
+                    } 
+                    else
+                    {
+                        PairsperCard[LDeckPos] -= 2;
+                    }
+
+                    // reset listeners
+                    for(int m=0;m<PrefabsHand.Count;m++)
+                    {
+                        PrefabsHand[m].GetComponent<Button>().onClick.RemoveAllListeners();
+                        string newTarget = PrefabsHand[m].name.Substring(0, PrefabsHand[m].name.Length - 7);
+                        int listenM = m;
+
+                        PrefabsHand[m].GetComponent<Button>().onClick.AddListener(() => { RemoveTCCTarget(newTarget, listenM); });
+                    }
+
+                    // reset container size
+                    float width = 64 + (DCHandContainer.transform.childCount * 252.0f);
+
+                    if (width > 900)
+                    {
+                        DCHandContainer.sizeDelta = new Vector2(DCHandContainer.sizeDelta.x - 252, DCHandContainer.sizeDelta.y);
+                        float right = DCHandContainer.offsetMax.x;
+
+                        if (right > 0)
+                        {
+                            DCHandContainer.offsetMin -= new Vector2(right, 0);
+                            DCHandContainer.offsetMax -= new Vector2(right, 0);
+                        }
+                    }
+
+                    break;
+                }
+                    
+            }
+
+        }
+
+        // if click left, delete right if exists
+        else if (thisLeft)
+        {
+            probResults.text = "Select First Card for Two Card Combo Pair";
+
+            bool rightExists = false;
+
+            if (handID+1 < PrefabsHand.Count)
+                rightExists = true;
+
+            string Left = searchName;
+            string Right = "";
+            bool isDupe = false;
+
+            if (rightExists)
+            {
+                Right = PrefabsHand[handID + 1].name;
+                isDupe = Left.Contains(Right);
+
+            }
+
+            int LDeckPos = 9999;
+            int RDeckPos = 9999;
+
+            // using hand id, find cards in deck that = PH[handID].name
+
+            // for each card in pair, find positions in deck
+            for (int i = 0; i < DeckCards.Count; i++)
+            {
+
+                // if found left
+                if (Left.Contains(DeckCards[i].cardName))
+                {
+                    LDeckPos = i;
+                }
+
+                // if found right and it exists
+                if(rightExists)
+                {
+                    if (Right.Contains(DeckCards[i].cardName))
+                    {
+                        RDeckPos = i;
+                    }
+                }
+                
+
+                // if both found or if only left exists and found, break;
+                if ((LDeckPos != 9999 && RDeckPos != 9999) || (LDeckPos != 9999 && !rightExists))
+                {
+                    break;
+                }
+            }
+
+            // destroy parent of pair in deck
+            for (int k = 0; k < DCHandContainer.childCount; k++)
+                
+            {
+
+                Transform child = DCHandContainer.GetChild(k);
+                bool lastChild = false;
+
+                if (k == DCHandContainer.childCount - 1)
+                    lastChild = true;
+
+
+                string LTarget = child.GetChild(0).name;
+                string RTarget = "";
+                
+                if(!lastChild)
+                    RTarget = child.GetChild(1).name;
+
+
+                // if find the game object with children matching targets destroy
+
+              
+
+
+                if ((LTarget.Contains(Left) && RTarget.Equals(Right)) || lastChild)
+                {
+
+                    // Destroy Object in Hand
+                    Destroy(child.gameObject);
+
+                    // Remove from PH
+
+                    if(rightExists)
+                    {
+                        PrefabsHand.RemoveAt(handID + 1);
+                        PrefabsHand.RemoveAt(handID);
+
+                        if (!isDupe)
+                        {
+                            PairsperCard[LDeckPos]--;
+                            PairsperCard[RDeckPos]--;
+                        }
+                        else
+                        {
+                            PairsperCard[LDeckPos] -= 2;
+                        }
+                    }
+                    else
+                    {
+                        PrefabsHand.RemoveAt(handID);
+                        PairsperCard[LDeckPos]--;
+                    }
+
+                    for (int m = 0; m < PrefabsHand.Count; m++)
+                    {
+                        PrefabsHand[m].GetComponent<Button>().onClick.RemoveAllListeners();
+                        string newTarget = PrefabsHand[m].name.Substring(0, PrefabsHand[m].name.Length - 7);
+                        int listenM = m;
+
+                        PrefabsHand[m].GetComponent<Button>().onClick.AddListener(() => { RemoveTCCTarget(newTarget, listenM); });
+                    }
+
+                    // reset container size
+                    float width = 64 + (DCHandContainer.transform.childCount * 252.0f);
+
+                    if (width > 900)
+                    {
+                        DCHandContainer.sizeDelta = new Vector2(DCHandContainer.sizeDelta.x - 252, DCHandContainer.sizeDelta.y);
+                        float right = DCHandContainer.offsetMax.x;
+
+                        if (right > 0)
+                        {
+                            DCHandContainer.offsetMin -= new Vector2(right, 0);
+                            DCHandContainer.offsetMax -= new Vector2(right, 0);
+                        }
+                    }
+
+
+                    break;
+                }
+
+            }
+
+        }
+
+        if(PrefabsHand.Count % 2 == 0)
+            probResults.text = "Select First Card for Two Card Combo Pair";
+        else
+            probResults.text = "Select Second Card for Two Card Combo Pair";
+
+
+    }
     public void AddOCCTarget(string searchName)
     {
         for (int i = 0; i < DeckCards.Count; i++)
@@ -647,17 +1220,31 @@ public class DrawCalc : MonoBehaviour
                 Prefabs[i].transform.GetChild(1).gameObject.SetActive(false);
 
                 // remove from hand
-                PrefabsHand.Remove(Prefabs[i]);
-                
-                
-                DCHandContainer.sizeDelta = new Vector2(CalcHandWidth(PrefabsHand.Count), DCHandContainer.sizeDelta.y);
-
-                float right = DCHandContainer.offsetMax.x;
-
-                if (right > 0)
+                for (int j = 0;j<PrefabsHand.Count;j++)
                 {
-                    DCHandContainer.offsetMin -= new Vector2(right, 0);
-                    DCHandContainer.offsetMax -= new Vector2(right, 0);
+                    if(PrefabsHand[j].name.Contains(searchName))
+                    {
+                        PrefabsHand.RemoveAt(j);
+                    }
+                }
+
+                foreach (Transform child in DCHandContainer.transform)
+                {
+                    if (child.name.Contains(searchName))
+                        Destroy(child.gameObject);
+                }
+
+                if (PrefabsHand.Count > 0)
+                {
+                    DCHandContainer.sizeDelta = new Vector2(CalcHandWidth(PrefabsHand.Count), DCHandContainer.sizeDelta.y);
+
+                    float right = DCHandContainer.offsetMax.x;
+
+                    if (right > 0)
+                    {
+                        DCHandContainer.offsetMin -= new Vector2(right, 0);
+                        DCHandContainer.offsetMax -= new Vector2(right, 0);
+                    }
                 }
             }
         }
@@ -665,37 +1252,10 @@ public class DrawCalc : MonoBehaviour
     
     public void AttemptCalc()
     {
-        int x = OCCSuccesses;
-        int N = deckSize;
-        int n = 5;
-        int k = OneCardComboTargets;
-        List<double> probabilities = new();
-        double exactOne;
-        double moreThenOne;
-        double atLeastOne;
-
-        if (ValidateInputs(x, N, n, k))
-        {
-
-            for(int i = 1;i<6;i++)
-            {
-                probabilities.Add(HypergeometricFormulaCalc(i, N, n, k));
-
-            }
-            //ExactOne = HypergeometricFormulaCalc(x, N, n, k);
-
-            // exactly one
-            exactOne = probabilities[0];
-            // more than one
-            moreThenOne = probabilities[1] + probabilities[2] + probabilities[3] + probabilities[4];
-            // one or more
-            atLeastOne = exactOne + moreThenOne;
-
-            Debug.Log("Exactly 1: "+ ((float)exactOne*100.0f).ToString("n2")+"%     " + exactOne);
-            Debug.Log("More than 1: "+ ((float)moreThenOne*100.0f).ToString("n2")+"%     " + moreThenOne);
-            Debug.Log("At Least 1: "+ ((float)atLeastOne*100.0f).ToString("n2")+"%     " + atLeastOne);
-
-        }
+        if (isOneNotTwo)
+            CalcOCC();
+        else
+            CalcTCC(true);
     }
     public double HypergeometricFormulaCalc(int x, int N, int n, int k)
     {
@@ -719,5 +1279,187 @@ public class DrawCalc : MonoBehaviour
         double answer = temp / comC;
 
         return answer;
+    }
+
+    public void CalcOCC()
+    {
+        int x = OCCSuccesses;
+        int N = deckSize;
+        int n = 5;
+        int k = OneCardComboTargets;
+        List<double> probabilities = new();
+        double exactOne;
+        double moreThenOne;
+        double atLeastOne;
+
+        if (ValidateInputs(x, N, n, k))
+        {
+
+            for (int i = 1; i < 6; i++)
+            {
+                probabilities.Add(HypergeometricFormulaCalc(i, N, n, k));
+
+            }
+            //ExactOne = HypergeometricFormulaCalc(x, N, n, k);
+
+            // exactly one
+            exactOne = probabilities[0];
+            // more than one
+            moreThenOne = probabilities[1] + probabilities[2] + probabilities[3] + probabilities[4];
+            // one or more
+            atLeastOne = exactOne + moreThenOne;
+
+            // display results
+
+
+            //Vector3 tempVector = DCHandContainer.parent.GetComponent<RectTransform>().anchoredPosition;
+            //DCHandContainer.parent.GetComponent<RectTransform>().anchoredPosition = new Vector3(tempVector.x, -810, tempVector.z);
+
+
+            probResults.text = "Exactly 1: " + Mathf.Clamp((float)exactOne * 100.0f, 0, 100.0f).ToString("n3") + "%     "
+                + "More than 1: " + Mathf.Clamp((float)moreThenOne * 100.0f, 0, 100.0f).ToString("n3") + "%\n"
+                + "At Least 1: " + Mathf.Clamp((float)atLeastOne * 100.0f, 0, 100.0f).ToString("n3") + "%";
+
+        }
+    }
+    public void CalcTCC(bool updateResults)
+    {
+        List<double> probabilities = new();
+        double atLeastOne = 0;
+
+        // for every potential pair
+        for (int i = 0;i<PrefabsHand.Count;i+=2)
+        {
+            int A = 9999;
+            int B = 9999;
+            
+            double notA;
+            double notB;
+            double notEither;
+            double totalHands;
+
+            double probA;
+            double probB;
+            double probEither;
+            long handsAB;
+            double probAB;
+            
+            bool isDupe = false;
+
+            // if pair exists
+            if (i + 1 < PrefabsHand.Count)
+            {
+
+                // get pair data
+                for (int k = 0; k < DeckCards.Count; k++)
+                {
+                    string testName = DeckCards[k].cardName;
+                    bool isA = false;
+                    bool isB = false;
+
+                    // found A
+                    if (PrefabsHand[i].name.Contains(testName))
+                    {
+                        A = DeckCards[k].totalCopies;
+                        isA = true;
+                    }
+
+                    // found B
+                    if (PrefabsHand[i+1].name.Contains(testName))
+                    {
+                        B = DeckCards[k].totalCopies;
+                        isB = true;
+                    }
+
+                    // if dupes
+                    if (isA && isB)
+                    {
+                        isDupe = true;
+                        break;
+                    }
+
+                    // if found card data for both cards
+                    if (A != 9999 && B != 9999)
+                        break;
+                }
+
+                // calc
+                notA = CalcCombinations(deckSize - A, 5);
+                notB = CalcCombinations(deckSize - B, 5);
+                notEither = CalcCombinations(deckSize - B - A, 5);
+                totalHands = CalcCombinations(deckSize, 5);
+
+                
+                probA = notA / totalHands;
+                probB = notB / totalHands;
+                probEither = notEither / totalHands;
+
+                handsAB = (long)(totalHands - (notA + notB- notEither));
+                probAB = 1 - probA - probB + probEither;
+
+                // if duplicate cards in pair, adjust results
+                if(isDupe)
+                {
+                    handsAB /= A;
+                    probAB /= A;
+                }
+
+                probabilities.Add(probAB);
+
+
+                string clampProb = Mathf.Clamp((float)probAB * 100.0f, 0, 100.0f).ToString("n2");
+                
+                // display results
+
+                Transform rightCard = DCHandContainer.transform.GetChild(i / 2).GetChild(1);
+                rightCard.GetChild(2).gameObject.SetActive(true);
+                rightCard.GetChild(3).gameObject.SetActive(true);
+
+                // which results displaying
+                if (ShowingPercentTCC)
+                    rightCard.GetChild(3).gameObject.GetComponent<TextMeshProUGUI>().text = clampProb + "%";
+                else
+                    rightCard.GetChild(3).gameObject.GetComponent<TextMeshProUGUI>().text = handsAB.ToString();
+
+            }
+            else
+            {
+
+                // if no pairs exist, update text and return
+                if(i == 0)
+                {
+                    // must be Card A exists, no pair exists
+                    probResults.text = "Select Second Card for Two Card Combo Pair";
+                    return;
+                }
+                break;
+            }
+                
+
+        }
+
+        // calc chance of opening at least 1 pair
+
+
+
+
+
+
+
+        foreach (double val in probabilities)
+            atLeastOne += val;
+
+        if(updateResults)
+        {
+            if(ShowingPercentTCC)
+                probResults.text = "On each pair, showing % chance to draw";
+            else
+                probResults.text = "On each pair, showing total hands they appear in";
+        }     
+    }
+
+    public void CalcDesires()
+    {
+
     }
 }

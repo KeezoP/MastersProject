@@ -775,7 +775,7 @@ public class DeckBuild : MonoBehaviour
     public void saveNotes()
     {
         deckNotes = GameObject.Find("NotesSection").GetComponent<TMP_InputField>().text;
-        tempList[userChoice].deckNotes = deckNotes;
+        saveDeck();
     }
 
 }

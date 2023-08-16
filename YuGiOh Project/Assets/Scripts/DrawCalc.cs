@@ -20,6 +20,10 @@ public class DrawCalc : MonoBehaviour
     public Button TwoCCButton;
     public Button CalcProbButton;
     public Button CalcDesiresButton;
+    public Button Desires0Button;
+    public Button Desires1Button;
+    public Button Desires2Button;
+    public Button Desires3Button;
     public GameObject DrawCalcScreen;
     public RectTransform DCDeckContainer;
     public RectTransform DCHandContainer;
@@ -27,6 +31,7 @@ public class DrawCalc : MonoBehaviour
     public RectTransform ProbFeatureButtons;
     public RectTransform DrawCalcMainMenuButtons;
     public RectTransform DrawCalcFeatureButtons;
+    public RectTransform DesiresFilterButtons;
     public List<GameObject> Prefabs;
     public List<GameObject> PrefabsHand;
     public List<GameObject> PrefabsPairs;
@@ -36,9 +41,25 @@ public class DrawCalc : MonoBehaviour
     public RectTransform Results;
     public int deckSize;
     public int currentDeckSize;
+    public int currentDesireTargetCopies;
 
     public int OneCardComboTargets;
     public int OCCSuccesses;
+
+    double banish0;
+    double banish1;
+    double banish2;
+    double banish3;
+
+    double drawBan0;
+    double drawBan1;
+    double drawBan2;
+    double drawBan3;
+
+    double chance0;
+    double chance1;
+    double chance2;
+    double chance3;
 
     public void Awake()
     {
@@ -51,6 +72,7 @@ public class DrawCalc : MonoBehaviour
         isOneNotTwo = true;
         isTestHands = true;
         ShowingPercentTCC = true;
+        currentDesireTargetCopies = 0;
     }
 
     public class DCCard
@@ -359,6 +381,34 @@ public class DrawCalc : MonoBehaviour
                     }
                 }
             }
+
+            if(isTestHands)
+            {
+
+                //reset listeners in case of pot of desires click
+                foreach (GameObject g in Prefabs)
+                {
+                    g.GetComponent<Button>().onClick.RemoveAllListeners();
+                    string searchName = g.name.Substring(0, g.name.Length - 7);
+
+                    // if prefab is greyed out then no new listener attached
+                    g.GetComponent<Button>().onClick.AddListener(() => { ClickCard(searchName); });
+                }
+
+                DrawCalcFeatureButtons.gameObject.SetActive(true);
+                // reset desires buttons
+                DesiresFilterButtons.gameObject.SetActive(false);
+                CalcDesiresButton.GetComponentInChildren<TextMeshProUGUI>().text = "Pot of Desires";
+                // update text
+                probResults.text = "Click on Cards in Deck to ";
+                if (AddingToHand)
+                    probResults.text += "Add to Hand";
+                else
+                    probResults.text += "Remove from Deck";
+            }
+
+
+            
         }
 
         
@@ -368,9 +418,7 @@ public class DrawCalc : MonoBehaviour
     {
         ResetDrawCalc();
         OneCardComboTargets = 0;
-        //Results.gameObject.SetActive(false);
-        //Vector3 tempVector = DCHandContainer.parent.GetComponent<RectTransform>().anchoredPosition;
-        //DCHandContainer.parent.GetComponent<RectTransform>().anchoredPosition = new Vector3(tempVector.x, -910, tempVector.z);
+        
         PairsperCard.Clear();
 
         foreach(GameObject g in Prefabs)
@@ -1459,32 +1507,80 @@ public class DrawCalc : MonoBehaviour
         }     
     }
 
-    public void CalcDesires()
+    public void ReadyDesires()
     {
-        double banish0 =0;
-        double banish1 = 0;
-        double banish2 = 0;
-        double banish3 = 0;
+        if (currentDeckSize >= 12)
+        {
+            if (DesiresFilterButtons.gameObject.activeInHierarchy
+                || CalcDesiresButton.GetComponentInChildren<TextMeshProUGUI>().text.Contains("Cancel"))
+            {
+                CalcDesiresButton.GetComponentInChildren<TextMeshProUGUI>().text = "Pot of Desires";
+                DesiresFilterButtons.gameObject.SetActive(false);
+                DrawCalcFeatureButtons.gameObject.SetActive(true);
 
-        double drawBan0 = 0;
-        double drawBan1 = 0;
-        double drawBan2 = 0;
-        double drawBan3 = 0;
+                probResults.text = "Click on Cards in Deck to ";
+                if (AddingToHand)
+                    probResults.text += "Add to Hand";
+                else
+                    probResults.text += "Remove from Deck";
 
-        double chance0 = 0;
-        double chance1 = 0;
-        double chance2 = 0;
-        double chance3 = 0;
+                foreach (GameObject g in Prefabs)
+                {
+                    g.GetComponent<Button>().onClick.RemoveAllListeners();
+                    string searchName = g.name.Substring(0, g.name.Length - 7);
+
+                    // if prefab is greyed out then no new listener attached
+                    g.GetComponent<Button>().onClick.AddListener(() => { ClickCard(searchName); });
+                }
+            }
+            
+            else
+            {
+                // remove all listeners
+                foreach (GameObject g in Prefabs)
+                {
+                    g.GetComponent<Button>().onClick.RemoveAllListeners();
+                    string searchName = g.name;
+
+                    // if prefab is greyed out then no new listener attached
+
+                    if (g.transform.GetChild(1).gameObject.activeInHierarchy == false)
+                        g.GetComponent<Button>().onClick.AddListener(() => { CalcDesires(searchName); });
+                }
+                probResults.text = "Click on one card in deck to view the likeliness of banishing/drawing card using pot of desires";
+                CalcDesiresButton.GetComponentInChildren<TextMeshProUGUI>().text = "Cancel";
+            }
+        }
+        else
+            probResults.text = "Need at least 12 cards in deck, 10 to banish, 2 to draw";
+    }
+
+
+    public void CalcDesires(string targetName)
+    {
+        banish0 = 0;
+        banish1 = 0;
+        banish2 = 0;
+        banish3 = 0;
+
+        drawBan0 = 0;
+        drawBan1 = 0;
+        drawBan2 = 0;
+        drawBan3 = 0;
+        
+        chance0 = 0;
+        chance1 = 0;
+        chance2 = 0;
+        chance3 = 0;
 
         // for now only calculating the interactions of 1 card with desires
-        if(PrefabsHand.Count == 1 && currentDeckSize >= 12)
-        {
+        
             for(int i = 0;i<Prefabs.Count;i++)
             {
                 // if found card data
-                if(PrefabsHand[0].name.Contains(DeckCards[i].cardName))
+                if(targetName.Contains(DeckCards[i].cardName))
                 {
-                    int totalCopies = DeckCards[i].totalCopies;
+                    int currentCopies = DeckCards[i].currentCopies;
 
                     /*
                         h(x;N,n,k) = [kCx][N-kCn-x]/[NCn]
@@ -1497,130 +1593,202 @@ public class DrawCalc : MonoBehaviour
                     */
 
                     // calc banish %
-                    switch (totalCopies)
+                    switch (currentCopies)
                     {
                         case 1:
                             // % chance banish 0
-                            banish0 = HypergeometricFormulaCalc(0, currentDeckSize, 10, totalCopies);
+                            banish0 = HypergeometricFormulaCalc(0, currentDeckSize, 10, currentCopies);
                             // % chance banish 1
-                            banish1 = HypergeometricFormulaCalc(1, currentDeckSize, 10, totalCopies);
+                            banish1 = HypergeometricFormulaCalc(1, currentDeckSize, 10, currentCopies);
                             break;
 
                         case 2:
                             // % chance banish 0
-                            banish0 = HypergeometricFormulaCalc(0, currentDeckSize, 10, totalCopies);
+                            banish0 = HypergeometricFormulaCalc(0, currentDeckSize, 10, currentCopies);
                             // % chance banish 1
-                            banish1 = HypergeometricFormulaCalc(1, currentDeckSize, 10, totalCopies);
+                            banish1 = HypergeometricFormulaCalc(1, currentDeckSize, 10, currentCopies);
                             // % chance banish 2
-                            banish2 = HypergeometricFormulaCalc(2, currentDeckSize, 10, totalCopies);
+                            banish2 = HypergeometricFormulaCalc(2, currentDeckSize, 10, currentCopies);
                             break;
 
                         case 3:
                             // % chance banish 0
-                            banish0 = HypergeometricFormulaCalc(0, currentDeckSize, 10, totalCopies);
+                            banish0 = HypergeometricFormulaCalc(0, currentDeckSize, 10, currentCopies);
                             // % chance banish 1
-                            banish1 = HypergeometricFormulaCalc(1, currentDeckSize, 10, totalCopies);
+                            banish1 = HypergeometricFormulaCalc(1, currentDeckSize, 10, currentCopies);
                             // % chance banish 2
-                            banish2 = HypergeometricFormulaCalc(2, currentDeckSize, 10, totalCopies);
+                            banish2 = HypergeometricFormulaCalc(2, currentDeckSize, 10, currentCopies);
                             // % chance banish 3
-                            banish3 = HypergeometricFormulaCalc(3, currentDeckSize, 10, totalCopies);
+                            banish3 = HypergeometricFormulaCalc(3, currentDeckSize, 10, currentCopies);
                             break;
                     }
 
                     // calc draw %
-                    switch(totalCopies)
+                    switch(currentCopies)
                     {
                         case 1:
-                            drawBan0 = HypergeometricFormulaCalc(1, currentDeckSize-10, 2, totalCopies);
+                            // banish 0 cards, odds of drawing 1
+                            drawBan0 = HypergeometricFormulaCalc(1, currentDeckSize-10, 2, currentCopies);
                             drawBan1 = 0;
                             break;
 
                         case 2:
-                            drawBan0 = HypergeometricFormulaCalc(1, currentDeckSize - 10, 2, totalCopies);
-                            drawBan1 = HypergeometricFormulaCalc(1, currentDeckSize - 10, 2, totalCopies)
-                                        + HypergeometricFormulaCalc(2, currentDeckSize - 10, 2, totalCopies);
+                            // banish 0 cards, odds of drawing at least 1
+                            drawBan0 = HypergeometricFormulaCalc(1, currentDeckSize - 10, 2, currentCopies)
+                                        + HypergeometricFormulaCalc(2, currentDeckSize - 10, 2, currentCopies);
+    
+                            // banish 1 card, odds of drawing 1
+                            drawBan1 = HypergeometricFormulaCalc(1, currentDeckSize - 10, 2, currentCopies-1);
+
                             drawBan2 = 0;
                             break;
 
                         case 3:
-                            drawBan0 = HypergeometricFormulaCalc(1, currentDeckSize - 10, 2, totalCopies);
-                            drawBan1 = HypergeometricFormulaCalc(1, currentDeckSize - 10, 2, totalCopies)
-                                        + HypergeometricFormulaCalc(2, currentDeckSize - 10, 2, totalCopies);
-                            drawBan2 = HypergeometricFormulaCalc(1, currentDeckSize - 10, 2, totalCopies)
-                                        + HypergeometricFormulaCalc(2, currentDeckSize - 10, 2, totalCopies)
-                                        + HypergeometricFormulaCalc(3, currentDeckSize - 10, 2, totalCopies);
+                            // banish 0 cards, odds of drawing at least 1
+                            drawBan0 = HypergeometricFormulaCalc(1, currentDeckSize - 10, 2, currentCopies)
+                                        + HypergeometricFormulaCalc(2, currentDeckSize - 10, 2, currentCopies) 
+                                        + HypergeometricFormulaCalc(3, currentDeckSize - 10, 2, currentCopies);
+                            
+                            // banish 1 card, odds of drawing at least 1
+                            drawBan1 = HypergeometricFormulaCalc(1, currentDeckSize - 10, 2, currentCopies - 1)
+                                        + HypergeometricFormulaCalc(2, currentDeckSize - 10, 2, currentCopies-1)
+                                        + HypergeometricFormulaCalc(3, currentDeckSize - 10, 2, currentCopies-1);
+
+                            // banish 2 cards, odds of drawing 1
+                            drawBan2 = HypergeometricFormulaCalc(1, currentDeckSize - 10, 2, currentCopies-2);
                             drawBan3 = 0;
                             break;
                     }
-                    
 
-                    // display results
-                    switch(totalCopies)
+
+                banish0 = Mathf.Clamp((float)banish0 * 100, 0, 100.0f);
+                banish1 = Mathf.Clamp((float)banish1 * 100, 0, 100.0f);
+                banish2 = Mathf.Clamp((float)banish2 * 100, 0, 100.0f);
+                banish3 = Mathf.Clamp((float)banish3 * 100, 0, 100.0f);
+
+                drawBan0 = Mathf.Clamp((float)drawBan0 * 100, 0, 100.0f);
+                drawBan1 = Mathf.Clamp((float)drawBan1 * 100, 0, 100.0f);
+                drawBan2 = Mathf.Clamp((float)drawBan2 * 100, 0, 100.0f);
+                drawBan3 = 0;
+
+                chance0 = Mathf.Clamp((float)(1 - banish0 + drawBan0) * 100, 0, 100.0f);
+                chance1 = Mathf.Clamp((float)(1 - banish1 + drawBan1) * 100, 0, 100.0f);
+                chance2 = Mathf.Clamp((float)(1 - banish2 + drawBan3) * 100, 0, 100.0f);
+                chance3 = 0;
+
+                currentDesireTargetCopies = currentCopies;
+                // reset test hands listeners
+                // remove all listeners
+
+                foreach (GameObject g in Prefabs)
                     {
-                        case 1:
-                            banish0 = Mathf.Clamp((float)banish0 * 100, 0, 100.0f);
-                            banish1 = Mathf.Clamp((float)banish1 * 100, 0, 100.0f);
+                        g.GetComponent<Button>().onClick.RemoveAllListeners();
+                        string searchName = g.name.Substring(0, g.name.Length - 7);
 
-                            drawBan0 = Mathf.Clamp((float)drawBan0 * 100, 0, 100.0f);
-
-                            chance0 = Mathf.Clamp((float)(banish0 + drawBan0) * 100,0,100.0f);
-                            chance1 = 0;
-
-                            Debug.Log("Banish 0: "+banish0.ToString("n3") + "% Draw: "+drawBan0.ToString("n3") + "% Total: "+chance0.ToString("n3") + "%");
-                            Debug.Log("Banish 1: "+banish1.ToString("n3") + "% Draw: "+drawBan1.ToString("n3") + "% Total: "+chance1.ToString("n3") + "%");
-                            break;
-
-                        case 2:
-                            banish0 = Mathf.Clamp((float)banish0 * 100, 0, 100.0f);
-                            banish1 = Mathf.Clamp((float)banish1 * 100, 0, 100.0f);
-                            banish2 = Mathf.Clamp((float)banish2 * 100, 0, 100.0f);
-
-                            drawBan0 = Mathf.Clamp((float)drawBan0 * 100, 0, 100.0f);
-                            drawBan1 = Mathf.Clamp((float)drawBan1 * 100, 0, 100.0f);
-
-                            chance0 = Mathf.Clamp((float)(banish0 + drawBan0) * 100, 0, 100.0f);
-                            chance1 = Mathf.Clamp((float)(banish1 + drawBan1) * 100, 0, 100.0f);
-                            chance2 = 0;
-
-                            Debug.Log("Banish 0: " + banish0.ToString("n3") + "% Draw: " + drawBan0.ToString("n3") + "% Total: " + chance0.ToString("n3") + "%");
-                            Debug.Log("Banish 1: " + banish1.ToString("n3") + "% Draw: " + drawBan1.ToString("n3") + "% Total: " + chance1.ToString("n3") + "%");
-                            Debug.Log("Banish 2: " + banish2.ToString("n3") + "% Draw: " + drawBan3.ToString("n3") + "% Total: " + chance2.ToString("n3") + "%");
-                            break;
-
-                        case 3:
-                            banish0 = Mathf.Clamp((float)banish0 * 100, 0, 100.0f);
-                            banish1 = Mathf.Clamp((float)banish1 * 100, 0, 100.0f);
-                            banish2 = Mathf.Clamp((float)banish2 * 100, 0, 100.0f);
-                            banish3 = Mathf.Clamp((float)banish3 * 100, 0, 100.0f);
-
-                            drawBan0 = Mathf.Clamp((float)drawBan0 * 100, 0, 100.0f);
-                            drawBan1 = Mathf.Clamp((float)drawBan1 * 100, 0, 100.0f);
-                            drawBan3 = Mathf.Clamp((float)drawBan3 * 100, 0, 100.0f);
-
-                            chance0 = Mathf.Clamp((float)(banish0 + drawBan0) * 100, 0, 100.0f);
-                            chance1 = Mathf.Clamp((float)(banish1 + drawBan1) * 100, 0, 100.0f);
-                            chance2 = Mathf.Clamp((float)(banish2 + drawBan3) * 100, 0, 100.0f);
-                            chance3 = 0;
-
-                            Debug.Log("Banish 0: " + banish0.ToString("n3") + "% Draw: " + drawBan0.ToString("n3") + "% Total: " + chance0.ToString("n3") + "%");
-                            Debug.Log("Banish 1: " + banish1.ToString("n3") + "% Draw: " + drawBan1.ToString("n3") + "% Total: " + chance1.ToString("n3") + "%");
-                            Debug.Log("Banish 2: " + banish2.ToString("n3") + "% Draw: " + drawBan3.ToString("n3") + "% Total: " + chance2.ToString("n3") + "%");
-                            Debug.Log("Banish 3: " + banish3.ToString("n3") + "% Draw: " + drawBan3.ToString("n3") + "% Total: " + chance3.ToString("n3") + "%");
-                            break;
-
+                        // if prefab is greyed out then no new listener attached
+                        g.GetComponent<Button>().onClick.AddListener(() => { ClickCard(searchName); });
                     }
 
+                    // hide old menu buttons
+                    DrawCalcFeatureButtons.gameObject.SetActive(false);
+                    // set active filter buttons
+                    DesiresFilterButtons.gameObject.SetActive(true);
 
+                    foreach (Transform child in DesiresFilterButtons.transform)
+                    {
+                        child.GetComponent<Image>().color = new Color(0, 0, 0, 1.0f);
+                        child.gameObject.SetActive(false);
+                    }
+                    for(int m = 0; m<currentCopies+1;m++)
+                    {
+                        DesiresFilterButtons.transform.GetChild(m).gameObject.SetActive(true);
+                    }
 
-
-
+                    CalcDesiresButton.GetComponentInChildren<TextMeshProUGUI>().text = "Close Desires";
+                    probResults.text = "Click on Banish Buttons to view percentages";
                     break;
                 }
             }
-        } 
-        else if(deckSize < 12)
-            probResults.text = "Need at least 12 cards in deck, 10 to banish, 2 to draw";
-        else
-            probResults.text = "Select Exactly 1 Card you want to test with Pot of Desires";
+         
+        
+        
+    }
+
+    public void FilterDesires(int index)
+    {
+        foreach (Transform child in DesiresFilterButtons.transform)
+            child.GetComponent<Image>().color = new Color(0, 0, 0, 1.0f);
+
+        DesiresFilterButtons.transform.GetChild(index).GetComponent<Image>().color = new Color(0.44f, 0.7f, 0.8f, 1.0f);
+
+        double atLeast1 = 0;
+
+
+
+        // display results
+        switch (index)
+        {
+
+            case 0:
+                probResults.text = "Banish Exactly 0: " + banish0.ToString("n3") + "%\n Drawing At Least 1: " + drawBan0.ToString("n3")+"%";
+                break;
+
+            case 1:
+                atLeast1 = CalcAtLeast1(1);
+                probResults.text = "Banish Exactly 1: " + banish1.ToString("n3") + "%      Banish At least 1: " + atLeast1.ToString("n3")
+                    + "%\n Drawing At Least 1: " + drawBan1.ToString("n3"); 
+                break;
+
+            case 2:
+                atLeast1 = CalcAtLeast1(2);
+                probResults.text = "Banish Exactly 2: " + banish2.ToString("n3") + "%      Banish At least 2: " + atLeast1.ToString("n3")
+                    + "%\n Drawing At Least 1: " + drawBan2.ToString("n3")+"%";
+                break;
+
+            case 3:
+                probResults.text = "Banish Exactly 3: " + banish3.ToString("n3")+"%";
+                break;
+        }
+    }
+
+    public double CalcAtLeast1(int index)
+    {
+        double returnVal = 0;
+
+        // user wants to see banish odds of index val
+
+
+
+        switch(index)
+        {
+            // odds of banishing at least 1 card with CDTC copies in deck
+            case 1:
+
+                // if 2 copies in deck, at least 1 = 1+2
+                if(currentDesireTargetCopies == 2)
+                    returnVal = banish1 + banish2;
+
+                // if 3 copies in deck, at least 1 = 1+2+3
+                else if (currentDesireTargetCopies == 3)
+                    returnVal = banish1 + banish2+banish3;
+                else
+                    returnVal = banish1;
+            break;
+
+            // odds of banishing at least 2 cards with CDTC copies in deck
+            case 2:
+                // if 2 copies in deck, at least 2 = 2+3
+                if (currentDesireTargetCopies == 3)
+                    returnVal = banish2 + banish3;
+                else
+                    returnVal = banish2;
+                break;
+
+        }
+
+        
+
+
+        return returnVal;
     }
 }

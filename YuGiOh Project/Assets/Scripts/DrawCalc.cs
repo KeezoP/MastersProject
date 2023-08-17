@@ -54,12 +54,10 @@ public class DrawCalc : MonoBehaviour
     double drawBan0;
     double drawBan1;
     double drawBan2;
-    double drawBan3;
 
     double chance0;
     double chance1;
     double chance2;
-    double chance3;
 
     public void Awake()
     {
@@ -321,6 +319,42 @@ public class DrawCalc : MonoBehaviour
         CalculateDrawChance();
     }
 
+    public void RemoveFromTestHand(string searchName, int PHPos)
+    {
+        Debug.Log("Clicked on card :" + PHPos);
+
+
+
+        for (int i = 0; i < DeckCards.Count; i++)
+        {
+            if (searchName.Contains(DeckCards[i].cardName))
+            {
+                int current = DeckCards[i].currentCopies;
+
+                current++;
+                DeckCards[i].currentCopies = current;
+                currentDeckSize++;
+
+                Destroy(DCHandContainer.GetChild(PHPos).gameObject);
+                PrefabsHand.RemoveAt(PHPos);
+
+                // reset listener PHPos value
+                for(int k = 0;k<PrefabsHand.Count;k++)
+                {
+                    PrefabsHand[k].GetComponent<Button>().onClick.RemoveAllListeners();
+                    string newSearchName = PrefabsHand[k].name.Substring(0, PrefabsHand[k].name.Length - 7);
+                    int newPosValue = k;
+                    PrefabsHand[k].GetComponent<Button>().onClick.AddListener(() => { RemoveFromTestHand(newSearchName, newPosValue); });
+                }
+
+                // updated prefabs
+                UpdatePrefab(Prefabs[i], current);
+            }
+        }
+        CalculateDrawChance();
+    }
+
+
     public void UpdatePrefab(GameObject Prefab, int current)
     {
         switch (current)
@@ -487,6 +521,13 @@ public class DrawCalc : MonoBehaviour
 
         tempPrefabs.transform.SetParent(DCHandContainer.transform);
         tempPrefabs.transform.GetChild(0).GetChild(0).gameObject.SetActive(false);
+
+        int position = PrefabsHand.Count;
+
+        tempPrefabs.GetComponent<Button>().onClick.AddListener(() => { RemoveFromTestHand(tempPrefabs.name,position); });
+
+
+
         //tempPrefabs.transform.GetChild(2).gameObject.SetActive(false);
         PrefabsHand.Add(tempPrefabs);
         PrefabsHand.Last<GameObject>().transform.localScale = new Vector3(0.75f, 0.75f, 0.75f);
@@ -1566,12 +1607,10 @@ public class DrawCalc : MonoBehaviour
         drawBan0 = 0;
         drawBan1 = 0;
         drawBan2 = 0;
-        drawBan3 = 0;
         
         chance0 = 0;
         chance1 = 0;
         chance2 = 0;
-        chance3 = 0;
 
         // for now only calculating the interactions of 1 card with desires
         
@@ -1656,10 +1695,13 @@ public class DrawCalc : MonoBehaviour
 
                             // banish 2 cards, odds of drawing 1
                             drawBan2 = HypergeometricFormulaCalc(1, currentDeckSize - 10, 2, currentCopies-2);
-                            drawBan3 = 0;
                             break;
                     }
 
+
+                chance0 = Mathf.Clamp((float)(banish0 * drawBan0) * 100, 0, 100.0f);
+                chance1 = Mathf.Clamp((float)(banish1 * drawBan1) * 100, 0, 100.0f);
+                chance2 = Mathf.Clamp((float)(banish2 * drawBan2) * 100, 0, 100.0f);
 
                 banish0 = Mathf.Clamp((float)banish0 * 100, 0, 100.0f);
                 banish1 = Mathf.Clamp((float)banish1 * 100, 0, 100.0f);
@@ -1669,12 +1711,9 @@ public class DrawCalc : MonoBehaviour
                 drawBan0 = Mathf.Clamp((float)drawBan0 * 100, 0, 100.0f);
                 drawBan1 = Mathf.Clamp((float)drawBan1 * 100, 0, 100.0f);
                 drawBan2 = Mathf.Clamp((float)drawBan2 * 100, 0, 100.0f);
-                drawBan3 = 0;
-
-                chance0 = Mathf.Clamp((float)(1 - banish0 + drawBan0) * 100, 0, 100.0f);
-                chance1 = Mathf.Clamp((float)(1 - banish1 + drawBan1) * 100, 0, 100.0f);
-                chance2 = Mathf.Clamp((float)(1 - banish2 + drawBan3) * 100, 0, 100.0f);
-                chance3 = 0;
+                
+                
+                
 
                 currentDesireTargetCopies = currentCopies;
                 // reset test hands listeners
@@ -1730,23 +1769,24 @@ public class DrawCalc : MonoBehaviour
         {
 
             case 0:
-                probResults.text = "Banish Exactly 0: " + banish0.ToString("n3") + "%\n Drawing At Least 1: " + drawBan0.ToString("n3")+"%";
+                probResults.text = "Banish Exactly 0: " + banish0.ToString("n3") + "%   Drawing At Least 1: " + drawBan0.ToString("n3")
+                    + "%\nBanish 0, Draw: "+chance0.ToString("n3")+"%";
                 break;
 
             case 1:
                 atLeast1 = CalcAtLeast1(1);
-                probResults.text = "Banish Exactly 1: " + banish1.ToString("n3") + "%      Banish At least 1: " + atLeast1.ToString("n3")
-                    + "%\n Drawing At Least 1: " + drawBan1.ToString("n3"); 
+                probResults.text = "Banish Exactly 1: " + banish1.ToString("n3") + "%   Banish At least 1: " + atLeast1.ToString("n3")
+                    + "%\nDrawing At Least 1: " + drawBan1.ToString("n3") + "%   Banish 1, still Draw: " + chance1.ToString("n3") + "%";
                 break;
 
             case 2:
                 atLeast1 = CalcAtLeast1(2);
-                probResults.text = "Banish Exactly 2: " + banish2.ToString("n3") + "%      Banish At least 2: " + atLeast1.ToString("n3")
-                    + "%\n Drawing At Least 1: " + drawBan2.ToString("n3")+"%";
+                probResults.text = "Banish Exactly 2: " + banish2.ToString("n3") + "%   Banish At least 2: " + atLeast1.ToString("n3")
+                    + "%\nDrawing At Least 1: " + drawBan2.ToString("n3")+ "%   Banish 2, still Draw: "+chance2.ToString("n3")+"%";
                 break;
 
             case 3:
-                probResults.text = "Banish Exactly 3: " + banish3.ToString("n3")+"%";
+                probResults.text = "Banish All 3: " + banish3.ToString("n3")+"%";
                 break;
         }
     }

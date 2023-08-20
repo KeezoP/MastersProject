@@ -82,7 +82,7 @@ public class AppManager : MonoBehaviour
 
     void Start()
     {
-        Screen.SetResolution(800, 1422, true);
+        Screen.SetResolution(400, 711, false);
     }
 
     public void FilterByExampleButton (int filterIndex)
@@ -485,8 +485,14 @@ public class AppManager : MonoBehaviour
         Debug.Log("Attempting download of image: "+cardID.ToString());
         AppManager.instance.ImageRequests.Add(cardID);
 
+        //UnityWebRequest webReq = UnityWebRequestTexture.GetTexture(String.Format("https://cors-anywhere.herokuapp.com/{0}{1}.jpg", cropImageURL, cardID));
         UnityWebRequest webReq = UnityWebRequestTexture.GetTexture(String.Format("{0}{1}.jpg", cropImageURL, cardID));
+        /*webReq.SetRequestHeader("Access-Control-Allow-Credentials", "true");
+        webReq.SetRequestHeader("Access-Control-Allow-Headers", "Accept, X-Access-Token, X-Application-Name, X-Request-Sent-Time");
+        webReq.SetRequestHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS"); 
+        webReq.SetRequestHeader("Access-Control-Allow-Origin", "*");*/
 
+        
         yield return webReq.SendWebRequest();
 
         if (webReq.result != UnityWebRequest.Result.Success)
@@ -529,7 +535,12 @@ public class AppManager : MonoBehaviour
         //Debug.Log("Attempting download of image: " +String.Format("{0}{1}.jpg", smallImageURL, cardID));
        AppManager.instance.ImageRequestsSmall.Add(newCard.id);
 
+        //UnityWebRequest webReq = UnityWebRequestTexture.GetTexture(String.Format("https://cors-anywhere.herokuapp.com/{0}{1}.jpg", smallImageURL, newCard.id));
         UnityWebRequest webReq = UnityWebRequestTexture.GetTexture(String.Format("{0}{1}.jpg", smallImageURL, newCard.id));
+        /*webReq.SetRequestHeader("Access-Control-Allow-Credentials", "true");
+        webReq.SetRequestHeader("Access-Control-Allow-Headers", "Accept, X-Access-Token, X-Application-Name, X-Request-Sent-Time");
+        webReq.SetRequestHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+        webReq.SetRequestHeader("Access-Control-Allow-Origin", "*");*/
 
         yield return webReq.SendWebRequest();
 

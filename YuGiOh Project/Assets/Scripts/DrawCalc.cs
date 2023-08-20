@@ -20,10 +20,7 @@ public class DrawCalc : MonoBehaviour
     public Button TwoCCButton;
     public Button CalcProbButton;
     public Button CalcDesiresButton;
-    public Button Desires0Button;
-    public Button Desires1Button;
-    public Button Desires2Button;
-    public Button Desires3Button;
+
     public GameObject DrawCalcScreen;
     public RectTransform DCDeckContainer;
     public RectTransform DCHandContainer;

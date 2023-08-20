@@ -16,31 +16,52 @@ public class LoadDeck : MonoBehaviour
     public List<DeckData> loadedDecks;
     public RectTransform LDC;
     public GameObject loadPrefab;
+    public TextAsset UnchainedDeck;
+    public TextAsset KashtiraPreDeck;
+    public TextAsset KashtiraPostDeck;
+    public TextAsset RunickFHSDeck;
 
 
     public void LoadAllDecks()
     {
 
         // get all filepaths
-        string[] filePaths = System.IO.Directory.GetFiles(Application.persistentDataPath);
+        //string[] filePaths = System.IO.Directory.GetFiles(Application.persistentDataPath);
+        string[] filePaths = System.IO.Directory.GetFiles(Application.streamingAssetsPath);
+        
 
         for (int i = 0;i< filePaths.Length;i++)
         {
-            
+            // i + 1 is a temporary measure due to streamingassetpath already containing non json file
             string fileData = System.IO.File.ReadAllText(filePaths[i]);
-            DeckData deckData = JsonUtility.FromJson<DeckData>(fileData);
-            //Debug.Log("deckname: " + deckData.deckName);
 
-            /*for(int j = 0;j<deckData.CardList.Count;j++)
-            {
-                Debug.Log(deckData.CardList[j].name);
-            }*/
+            if (fileData.Contains("deckName")) {
+                DeckData deckData = JsonUtility.FromJson<DeckData>(fileData);
+                //Debug.Log("deckname: " + deckData.deckName);
 
-            this.loadedDecks.Add(deckData);
+                /*for(int j = 0;j<deckData.CardList.Count;j++)
+                {
+                    Debug.Log(deckData.CardList[j].name);
+                }*/
+
+                this.loadedDecks.Add(deckData);
+            }
+
+
+            
         }
+
+        // test decks
+       
+        /*this.loadedDecks.Add(JsonUtility.FromJson<DeckData>(UnchainedDeck.ToString()));
+        this.loadedDecks.Add(JsonUtility.FromJson<DeckData>(KashtiraPreDeck.ToString()));
+        this.loadedDecks.Add(JsonUtility.FromJson<DeckData>(KashtiraPostDeck.ToString()));
+        this.loadedDecks.Add(JsonUtility.FromJson<DeckData>(RunickFHSDeck.ToString()));*/
+
 
         for (int j = 0; j < loadedDecks.Count; j++)
         {
+            Debug.Log(loadedDecks[j].deckName);
             GameObject tempButton = Instantiate(loadPrefab);
             tempButton.transform.SetParent(LDC.transform);
 

@@ -10,8 +10,6 @@ using System.Linq;
 
 public class DeckBuild : MonoBehaviour
 {
-
-
     public class Card
     {
         // every card has a numerical id
@@ -753,7 +751,6 @@ public class DeckBuild : MonoBehaviour
         viewContainer.sizeDelta = new Vector2(viewContainer.sizeDelta.x, UI.instance.GetViewContainerHeight(divby5));
         //PrintTest();
     }
-
 
     public void isShowingAll()
     {

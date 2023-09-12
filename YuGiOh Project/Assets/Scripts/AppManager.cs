@@ -11,6 +11,7 @@ using UnityEngine.UI;
 
 public class AppManager : MonoBehaviour
 {
+    // Card Search Filter
     public enum Filters
     {
         All = 0,
@@ -20,6 +21,7 @@ public class AppManager : MonoBehaviour
         Extra = 4
     }
     
+    // Deck Build Filter
     public enum FiltersDeck
     {
         Monster = 0,
@@ -28,36 +30,37 @@ public class AppManager : MonoBehaviour
         All = 3
     }
 
-    // API url
-    public string url;
-    public string cropImageURL;
-    public string smallImageURL;
-    public List<string> ImageRequests;
-    public List<string> ImageRequestsSmall;
+    public string url; // API url
+    public string cropImageURL; // cropped image url
+    public string smallImageURL; // small image url
 
+    public List<string> ImageRequests; // list of cropped card image requests
+    public List<string> ImageRequestsSmall; // list of small card image requests
+    public List<CardImages> ImageStorage = new(); // list of images received
     public int DeckFilter = 9999;
 
     // JSON from API request
-    public JSONNode jsonResult;
-
-    // JSON filtered
-    public JSONNode jsonFilter;
-    public JSONNode stapleCards;
-    public bool haveStaples;
+    public JSONNode jsonResult; // original from API request
+    public JSONNode jsonFilter; // filter of jsonResult
+    public JSONNode stapleCards; // storage for API Staple request
+    public bool haveStaples; // prevents repeat staple requests
 
     public static AppManager instance;
 
+    // Class used to store images, grouped by card id
     public class CardImages
     {
         public String cardID;
         public Sprite smallURL;
         public Sprite croppedURL;
-        public Image largeURL;
+        public Image largeURL; // not currently used
 
+        // set CardImages
         public CardImages(String ID, Sprite sprite, int choice)
         {
             cardID = ID;
 
+            // store image in location based on choice input
             switch(choice)
             {
                 case 0:
@@ -72,7 +75,7 @@ public class AppManager : MonoBehaviour
         }
     }
 
-    public List<CardImages> ImageStorage = new List<CardImages>();
+    
 
     void Awake() 
     {
@@ -85,17 +88,23 @@ public class AppManager : MonoBehaviour
         Screen.SetResolution(400, 711, false);
     }
 
+    // Method filters Card Search results
     public void FilterByExampleButton (int filterIndex)
     {
-        UI.instance.infoDropdown.gameObject.SetActive(false);
-        UI.instance.DeckButtons.gameObject.SetActive(false);
-        UI.instance.MainMenuButtons.gameObject.SetActive(true);
-        Filters fil = (Filters)filterIndex;
-
         // get unedited array of records
         JSONArray records = jsonResult["data"].AsArray;
 
+        // get users filter choice
+        Filters fil = (Filters)filterIndex;
         string filter = "9999";
+
+
+        // prepare UI
+        UI.instance.infoDropdown.gameObject.SetActive(false);
+        UI.instance.DeckButtons.gameObject.SetActive(false);
+        UI.instance.MainMenuButtons.gameObject.SetActive(true);
+
+        // reset UI button colour
         UI.instance.FilterButtons.transform.GetChild(0).GetComponent<Image>().color = new Color(0, 0, 0, 0.5f);
         UI.instance.FilterButtons.transform.GetChild(1).GetComponent<Image>().color = new Color(0, 0, 0, 0.5f);
         UI.instance.FilterButtons.transform.GetChild(2).GetComponent<Image>().color = new Color(0, 0, 0, 0.5f);
@@ -103,6 +112,7 @@ public class AppManager : MonoBehaviour
         UI.instance.FilterButtons.transform.GetChild(4).GetComponent<Image>().color = new Color(0, 0, 0, 0.5f);
 
         // filter by card type
+        // switch updates filter and colour of selected filter button
         switch (fil)
         {
             case Filters.All:
@@ -131,50 +141,51 @@ public class AppManager : MonoBehaviour
                 break;
         }
 
+        // display original data
         if (filter.Equals("All"))
         {
             AppManager.instance.jsonFilter = AppManager.instance.jsonResult["data"];
             UI.instance.SetSegments(records);
         } 
         
-        // extra deck monsters have multiple types
+        // display filtered data for extra deck monsters
         else if(filter.Equals("Extra"))
         {
             // create a new array of filtered results
             JSONArray filteredRecords = new JSONArray();
 
+            // for every card, check if meets filter
             for (int i = 0; i < records.Count; i++)
             {
                 // get card type
                 String recordCardType = records[i]["type"];
-
 
                 // compare card type with required type
                 if (recordCardType.Contains("Fusion") || recordCardType.Contains("Synchro") 
                     || recordCardType.Contains("XYZ") || recordCardType.Contains("Link"))
                 {
                     filteredRecords.Add(records[i]);
-                    //Debug.Log("filter records data test: extra " + records[i].ToString());
                 }
             }
 
+            // set to filtered cards
             AppManager.instance.jsonFilter = filteredRecords;
 
             // display the results on screen
             UI.instance.SetSegments(filteredRecords);
         }
 
-        // monsters have multiple types, removing extra deck types
+        // display filtered data for main deck monsters
         else if (filter.Equals("Monster"))
         {
             // create a new array of filtered results
             JSONArray filteredRecords = new JSONArray();
 
+            // for every card, check if meets filter
             for (int i = 0; i < records.Count; i++)
             {
                 // get card type
                 String recordCardType = records[i]["type"];
-
 
                 // compare card type with required type
                 if (!recordCardType.Contains("Fusion") && !recordCardType.Contains("Synchro") 
@@ -182,21 +193,23 @@ public class AppManager : MonoBehaviour
                     && recordCardType.Contains("Monster"))
                 {
                     filteredRecords.Add(records[i]);
-                    //Debug.Log("filter records data test: mon main " + records[i].ToString());
                 }
             }
 
+            // set to filtered cards
             AppManager.instance.jsonFilter = filteredRecords;
-            //Debug.Log("monster filter print filtered: " + AppManager.instance.jsonFilter.ToString());
+
             // display the results on screen
             UI.instance.SetSegments(filteredRecords);
         }
 
+        // display filtered data for spells / traps
         else
         {
             // create a new array of filtered results
             JSONArray filteredRecords = new JSONArray();
 
+            // for every card, check if meets filter
             for (int i = 0; i < records.Count; i++)
             {
                 // get card type
@@ -206,38 +219,36 @@ public class AppManager : MonoBehaviour
                 if (recordCardType.Contains(filter))
                 {
                     filteredRecords.Add(records[i]);
-                    //Debug.Log("filter records data test: s/t " + records[i].ToString());
                 }
-
             }
 
+            // set to filtered cards
             AppManager.instance.jsonFilter = filteredRecords;
 
             // display the results on screen
             UI.instance.SetSegments(filteredRecords);
         }
-        
-
     }
 
+    // Method filters Deck Builder
     public void FilterDeck(int filterIndex)
     {
-        
+        // update filter
         if(filterIndex != 3)
             AppManager.instance.DeckFilter = filterIndex;
         
         List<DeckBuild.Card> Deck = AppManager.instance.GetComponent<DeckBuild>().DeckList;
         List<DeckBuild.Card> NewDeck = new List<DeckBuild.Card>();
         applyBanlist();
-        //UI.instance.infoDropdown.gameObject.SetActive(false);
-        //UI.instance.DeckButtons.gameObject.SetActive(false);
-
         FiltersDeck fil = (FiltersDeck)filterIndex;
         
         string filter = "9999";
+
+        // reset colours
         UI.instance.DeckFilterButtons.transform.GetChild(0).GetComponent<Image>().color = new Color(0,0,0,0.5f);
         UI.instance.DeckFilterButtons.transform.GetChild(1).GetComponent<Image>().color = new Color(0,0,0,0.5f);
         UI.instance.DeckFilterButtons.transform.GetChild(2).GetComponent<Image>().color = new Color(0,0,0,0.5f);
+
         // filter by card type
         switch (fil)
         {
@@ -277,14 +288,12 @@ public class AppManager : MonoBehaviour
                     || recordCardType.Contains("XYZ") || recordCardType.Contains("Link"))
                 {
                     NewDeck.Add(Deck[i]);
-                    //Debug.Log("filter records data test: extra " + records[i].ToString());
                 }
             }
 
             AppManager.instance.GetComponent<DeckBuild>().FilteredDeckList = NewDeck;
 
             // display the results on screen
-            //Debug.Log("E");
             UI.instance.displayFilterCards(NewDeck);
         }
         
@@ -303,17 +312,15 @@ public class AppManager : MonoBehaviour
                     && recordCardType.Contains("Monster"))
                 {
                     NewDeck.Add(Deck[i]);
-                    //Debug.Log("filter records data test: extra " + records[i].ToString());
                 }
             }
 
             AppManager.instance.GetComponent<DeckBuild>().FilteredDeckList = NewDeck;
 
             // display the results on screen
-            //Debug.Log("M");
             UI.instance.displayFilterCards(NewDeck);
         }
-
+        // display all cards
         else if(filter.Equals("All"))
         {
             for (int i = 0; i < Deck.Count; i++)
@@ -324,10 +331,9 @@ public class AppManager : MonoBehaviour
             AppManager.instance.GetComponent<DeckBuild>().FilteredDeckList = NewDeck;
             UI.instance.displayFilterCards(NewDeck);
         }
-
+        // display Spell/Trap cards
         else
         {
-            
             for (int i = 0; i < Deck.Count; i++)
             {
                 // get card type
@@ -337,32 +343,27 @@ public class AppManager : MonoBehaviour
                 if (recordCardType.Contains("Spell") || recordCardType.Contains("Trap"))
                 {
                     NewDeck.Add(Deck[i]);
-                    
                 }
-
             }
 
             AppManager.instance.GetComponent<DeckBuild>().FilteredDeckList = NewDeck;
 
             // display the results on screen
-            //Debug.Log("ST");
             UI.instance.displayFilterCards(NewDeck);
         }
-
-
     }
 
+    // Method updates prefabs to display ban list
     public void applyBanlist()
     {
-        // calc banlist data here
         List<DeckBuild.Card> Deck = AppManager.instance.GetComponent<DeckBuild>().DeckList;
         List<GameObject> prefabs = AppManager.instance.GetComponent<DeckBuild>().cardPrefabs;
         DeckBuild.DeckFormat DF = (DeckBuild.DeckFormat)AppManager.instance.GetComponent<DeckBuild>().getFormat();
 
+        // get requested ban list data of each card
         for (int i = 0;i<Deck.Count;i++)
         {
             string whatBanlist = "temp";
-            //Debug.Log(Deck[i].name + ": Format: "+DF.ToString()+" tcg: " + Deck[i].banlist[0]+" ocg: "+Deck[i].banlist[2]);
             switch (DF.ToString())
             {
                 case "ALL":
@@ -380,9 +381,10 @@ public class AppManager : MonoBehaviour
                     whatBanlist = Deck[i].banlist[2];
                     break;
             }
-            //Debug.Log(Deck[i].name + ": Status POST SWITCH: " + whatBanlist);
+
             GameObject banImage = prefabs[i].transform.GetChild(0).GetChild(1).gameObject;
 
+            // display ban list in prefab
             if (!whatBanlist.Equals("temp") && !DF.ToString().Equals("ALL"))
             {
 
@@ -415,24 +417,34 @@ public class AppManager : MonoBehaviour
             UI.instance.updateSegments();
     }
 
+    // Method displays Staple cards
     public void viewStaples()
     {
+        // if second method call, display staples
         if (haveStaples == true) {
+
+            // set arrays for records
             AppManager.instance.jsonFilter = AppManager.instance.stapleCards["data"];
             AppManager.instance.jsonResult = AppManager.instance.stapleCards;
 
+            // close info dropdown if open
             if (UI.instance.infoDropdown.gameObject.activeInHierarchy)
                 UI.instance.infoDropdown.gameObject.SetActive(false);
 
+            // display data
             UI.instance.SetSegments(AppManager.instance.stapleCards["data"]);
         }
+        // else request staples
         else
         {
-            Debug.Log("Getting Staples");
             AppManager.instance.StartCoroutine("GetStaples");
             haveStaples = true;
         }
     }
+
+
+
+    /*  4 Methods for API requests    */
 
     IEnumerator GetData(string cardName)
     {
@@ -463,8 +475,11 @@ public class AppManager : MonoBehaviour
                 break;
         }
 
-        // url and query
-        webReq.url = String.Format("{0}?fname={1}&desc={1}{2}", url, cardName,format);
+        // url and query, broken after 02/09/2023
+        //webReq.url = String.Format("{0}?fname={1}&desc={1}{2}", url, cardName,format);
+        
+        // url temp
+        webReq.url = String.Format("{0}?fname={1}{2}", url, cardName,format);
 
         Debug.Log("attempt to search: " + webReq.url);
         yield return webReq.SendWebRequest();
@@ -508,7 +523,6 @@ public class AppManager : MonoBehaviour
             Sprite newSprite = Sprite.Create(texture, new Rect(0.0f, 0.0f, texture.width, texture.height), new Vector2(0.5f, 0.5f), 100.0f);
 
             //tempImage.sprite = newSprite;
-
             bool found = false;
             for (int i = 0; i < ImageStorage.Count; i++)
             {
@@ -536,7 +550,10 @@ public class AppManager : MonoBehaviour
        AppManager.instance.ImageRequestsSmall.Add(newCard.id);
 
         //UnityWebRequest webReq = UnityWebRequestTexture.GetTexture(String.Format("https://cors-anywhere.herokuapp.com/{0}{1}.jpg", smallImageURL, newCard.id));
+
+        // url and image request
         UnityWebRequest webReq = UnityWebRequestTexture.GetTexture(String.Format("{0}{1}.jpg", smallImageURL, newCard.id));
+        
         /*webReq.SetRequestHeader("Access-Control-Allow-Credentials", "true");
         webReq.SetRequestHeader("Access-Control-Allow-Headers", "Accept, X-Access-Token, X-Application-Name, X-Request-Sent-Time");
         webReq.SetRequestHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
@@ -605,9 +622,6 @@ public class AppManager : MonoBehaviour
 
         // url and query
         webReq.url = String.Format("{0}?staple=yes", url);
-
-        // STAPLE
-        //webReq.url = String.Format("{0}?type=trap%20card&staple=yes",url);
 
         yield return webReq.SendWebRequest();
 

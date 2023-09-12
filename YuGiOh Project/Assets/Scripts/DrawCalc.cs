@@ -351,7 +351,6 @@ public class DrawCalc : MonoBehaviour
         CalculateDrawChance();
     }
 
-
     public void UpdatePrefab(GameObject Prefab, int current)
     {
         switch (current)
@@ -754,8 +753,7 @@ public class DrawCalc : MonoBehaviour
         }
 
         ReadyOCCCalc();
-    }
-
+    }   
     
     public void ReadyOCCCalc()
     {
@@ -777,7 +775,7 @@ public class DrawCalc : MonoBehaviour
         OneCCButton.GetComponent<Image>().color = new Color(0.44f, 0.7f, 0.8f, 1.0f);
         TwoCCButton.GetComponent<Image>().color = new Color(0, 0, 0, 0.5f);
     }
-
+    
     public void ReadyTCCCalc()
     {
         isOneNotTwo = false;
@@ -799,6 +797,7 @@ public class DrawCalc : MonoBehaviour
         TwoCCButton.GetComponent<Image>().color = new Color(0.44f, 0.7f, 0.8f, 1.0f);
 
     }
+   
     public void AddTCCTarget(string searchName)
     {
         bool isLeft = true;
@@ -999,6 +998,7 @@ public class DrawCalc : MonoBehaviour
             }
         }
     }
+
     public void RemoveTCCTarget(string searchName, int handID)
     {
         bool thisLeft = true;
@@ -1248,6 +1248,7 @@ public class DrawCalc : MonoBehaviour
 
 
     }
+
     public void AddOCCTarget(string searchName)
     {
         for (int i = 0; i < DeckCards.Count; i++)
@@ -1344,6 +1345,7 @@ public class DrawCalc : MonoBehaviour
         else
             CalcTCC(true);
     }
+
     public double HypergeometricFormulaCalc(int x, int N, int n, int k)
     {
         /*
@@ -1409,6 +1411,7 @@ public class DrawCalc : MonoBehaviour
 
         }
     }
+
     public void CalcTCC(bool updateResults)
     {
         List<double> probabilities = new();
@@ -1592,7 +1595,6 @@ public class DrawCalc : MonoBehaviour
         else
             probResults.text = "Need at least 12 cards in deck, 10 to banish, 2 to draw";
     }
-
 
     public void CalcDesires(string targetName)
     {

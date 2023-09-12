@@ -9,16 +9,14 @@ using System;
 
 public class UI : MonoBehaviour
 {
-
-    // holds all results vertically
     public RectTransform container;
     public RectTransform deckContainer;
     public RectTransform viewContainer;
 
-    // prefab used to display results
+    // prefab used to display searched cards
     public GameObject segmentPrefab;
 
-    // list of all available segments
+    // list of all available card buttons
     public List<GameObject> segments = new List<GameObject>();
 
     [Header("Info Dropdown")]
@@ -92,12 +90,6 @@ public class UI : MonoBehaviour
         // instantiate 'amount' number of new segments
         for (int x = 0; x < amount; ++x)
             CreateNewSegment();
-    }
-
-    void Start()
-    {
-        // preload 1 segment
-        //PreLoadSegments(1);
     }
 
     // gets the JSON result and displays them on the screen with their respective segments
